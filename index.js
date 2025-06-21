@@ -128,7 +128,7 @@ app.post("/verificacion", async (req, res) => {
 
       if (kommoId === "cajaadmi01") {
         registro = await RegistroMacleyn.findOne({ id: idExtraido });
-      } else if (kommoId === "luchito463") {
+      } else if (kommoId === "luchito4637") {
         registro = await RegistroLuchito.findOne({ id: idExtraido })
       }
 
