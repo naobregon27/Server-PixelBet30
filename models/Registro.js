@@ -42,4 +42,4 @@ const registroSchema = new mongoose.Schema({
   }
 });
 
-module.exports = mongoose.model('Registro', registroSchema);
+module.exports = mongoose.model('RegistroMacleyn', registroSchema);

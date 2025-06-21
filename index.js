@@ -1,21 +1,9 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
-const Registro = require("./models/Registro");
+const RegistroMacleyn = require("./models/Registro");
+const RegistroLuchito = require("./models/RegistroLuchito");
 const axios = require('axios');
-const dotenv = require('dotenv');
-
-// Cargar variables de entorno
-dotenv.config();
-
-// Verificar que las variables de entorno se cargaron
-console.log('🔑 Verificando variables de entorno:');
-console.log('KOMMO_TOKEN_1:', process.env.KOMMO_TOKEN_1 ? '✅ Cargado' : '❌ No encontrado');
-console.log('KOMMO_DOMAIN_1:', process.env.KOMMO_DOMAIN_1 ? '✅ Cargado' : '❌ No encontrado');
-console.log('KOMMO_TOKEN_2:', process.env.KOMMO_TOKEN_2 ? '✅ Cargado' : '❌ No encontrado');
-console.log('KOMMO_DOMAIN_2:', process.env.KOMMO_DOMAIN_2 ? '✅ Cargado' : '❌ No encontrado');
-console.log('KOMMO_TOKEN_3:', process.env.KOMMO_TOKEN_3 ? '✅ Cargado' : '❌ No encontrado');
-console.log('KOMMO_DOMAIN_3:', process.env.KOMMO_DOMAIN_3 ? '✅ Cargado' : '❌ No encontrado');
 
 const app = express();
 const PORT = 3000;
@@ -23,63 +11,47 @@ const PORT = 3000;
 app.use(bodyParser.json());
 app.use(require("cors")());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
+app.use(express.json()); // Asegura que req.body funcione correctamente
 
-// Agregar middleware para CORS
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-  next();
-});
-
-// Conexión a MongoDB
+// Conexión a MongoDB con manejo de eventos
 mongoose.connect("mongodb+srv://lauraahora4632025:hXqOPPuQ1INnrtkX@ahora4633.kcvqn5q.mongodb.net/")
-  .then(() => console.log('✅ Conexión exitosa a MongoDB Atlas'))
-  .catch(err => console.error('❌ Error de conexión a MongoDB:', err.message));
-
-// Configuración de cuentas Kommo
-const kommoAccounts = {
-  'cajaadmi01': {
-    token: process.env.KOMMO_TOKEN_1,
-    domain: process.env.KOMMO_DOMAIN_1 || 'cajaadmi01.kommo.com'
-  },
-  'luchito4637': {
-    token: process.env.KOMMO_TOKEN_2,
-    domain: process.env.KOMMO_DOMAIN_2 || 'luchito4637.kommo.com'
-  },
-  'cuenta3': {
-    token: process.env.KOMMO_TOKEN_3,
-    domain: process.env.KOMMO_DOMAIN_3 || 'dominio_de_cuenta3.kommo.com'
-  }
-};
-
-// Verificar la configuración de las cuentas
-console.log('👤 Verificando configuración de cuentas Kommo:');
-Object.entries(kommoAccounts).forEach(([name, account]) => {
-  console.log(`Cuenta ${name}:`, {
-    token: account.token ? '✅ Presente' : '❌ Falta',
-    domain: account.domain ? '✅ Presente' : '❌ Falta'
+  .then(() => {
+    console.log('✅ Conexión exitosa a MongoDB Atlas');
+  })
+  .catch(err => {
+    console.error('❌ Error de conexión a MongoDB:', err.message);
   });
+
+// Eventos adicionales de conexión
+mongoose.connection.on('connected', () => {
+  console.log('🟢 MongoDB conectado');
 });
 
-// Mapa para asociar números de WhatsApp con cuentas Kommo
-const whatsappToKommoMap = new Map();
+mongoose.connection.on('error', (err) => {
+  console.error('🔴 Error en la conexión de MongoDB:', err.message);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.log('🟡 MongoDB desconectado');
+});
 
 const isValidIP = (ip) => {
-  const regex = /^(25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)){3}$/;
+  const regex =
+    /^(25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)){3}$/;
   return regex.test(ip);
 };
 
 app.post("/guardar", async (req, res) => {
   try {
-    const { id, token, pixel, subdominio, dominio, ip, fbclid, mensaje, whatsappNumber } = req.body;
-    
+    const { id, token, pixel, subdominio, dominio, ip, fbclid, mensaje } =
+      req.body;
+
     // 1. Verificación de campos obligatorios
-    if (!id || !token || !pixel || !subdominio || !dominio || !ip || !whatsappNumber) {
+    if (!id || !token || !pixel || !subdominio || !dominio || !ip) {
       return res.status(400).json({ error: "Faltan campos obligatorios" });
     }
 
-    // 2. Validaciones
+    // 2. Validación de tipos y formatos
     if (!/^\d+$/.test(id)) {
       return res.status(400).json({ error: "ID debe ser numérico" });
     }
@@ -88,84 +60,36 @@ app.post("/guardar", async (req, res) => {
       return res.status(400).json({ error: "IP no es válida" });
     }
 
-    // 3. Determinar la cuenta Kommo basado en el número de WhatsApp
-    let kommoAccountId = null;
-    
-    // Obtener la configuración del número desde el backend
-    try {
-      const configResponse = await axios.post(
-        "https://ahora4633.io/backend/get_config.php",
-        { subdominio }
-      );
-
-      if (configResponse.data.error) {
-        console.error("❌ Error al obtener configuración:", configResponse.data.error);
-        return res.status(500).json({ error: "Error al obtener configuración del número" });
-      }
-
-      // La cuenta Kommo debe venir en la configuración
-      kommoAccountId = configResponse.data.kommo_account;
-
-      if (!kommoAccountId || !kommoAccounts[kommoAccountId]) {
-        console.error("❌ Cuenta Kommo no válida:", kommoAccountId);
-        return res.status(400).json({ error: "Cuenta Kommo no válida para este número" });
-      }
-
-      console.log("📱 Número de WhatsApp:", whatsappNumber);
-      console.log("🔗 Asociado a la cuenta Kommo:", kommoAccountId);
-      console.log("🌐 Dominio Kommo:", kommoAccounts[kommoAccountId].domain);
-
-      // 4. Evitar duplicados
-      const existente = await Registro.findOne({ id });
-      if (existente) {
-        return res.status(409).json({ error: "Este ID ya fue registrado" });
-      }
-
-      // 5. Guardar en la base de datos
-      const nuevoRegistro = new Registro({
-        id,
-        token,
-        pixel,
-        subdominio,
-        dominio,
-        ip,
-        fbclid,
-        mensaje,
-        kommoAccount: kommoAccountId,
-        whatsappNumber
-      });
-      await nuevoRegistro.save();
-
-      console.log("✅ Datos guardados exitosamente:", {
-        ID: id,
-        "Número WhatsApp": whatsappNumber,
-        "Cuenta Kommo": kommoAccountId,
-        "Subdominio": subdominio,
-        "IP": ip
-      });
-
-      res.status(201).json({ 
-        mensaje: "Datos guardados con éxito",
-        detalles: {
-          whatsappNumber,
-          kommoAccount: kommoAccountId
-        }
-      });
-
-    } catch (error) {
-      console.error("❌ Error al procesar la configuración:", error);
-      return res.status(500).json({ error: "Error al procesar la configuración" });
+    // 3. Evitar duplicados si el ID ya existe
+    const existente = await RegistroMacleyn.findOne({ id });
+    if (existente) {
+      return res.status(409).json({ error: "Este ID ya fue registrado" });
     }
 
+    // 4. Guardar en la base de datos
+    const nuevoRegistro = new RegistroMacleyn({
+      id,
+      token,
+      pixel,
+      subdominio,
+      dominio,
+      ip,
+      fbclid,
+      mensaje,
+    });
+    await nuevoRegistro.save();
+
+    res.status(201).json({ mensaje: "Datos guardados con éxito" });
   } catch (err) {
-    console.error("❌ Error interno:", err);
+    console.error(err);
     res.status(500).json({ error: "Error interno al guardar los datos" });
   }
 });
 
 app.post("/verificacion", async (req, res) => {
-  try {
   const body = req.body;
+  const { kommoId, token } = req.query;
+
   console.log(JSON.stringify(body, null, 2), "← este es lo que devuelve el body");
   const leadId = req.body?.leads?.add?.[0]?.id;
 
@@ -173,137 +97,133 @@ app.post("/verificacion", async (req, res) => {
     return res.status(400).send("Lead ID no encontrado");
   }
 
-    // Primero necesitamos obtener el mensaje para extraer el ID
-    // Intentamos con cada cuenta hasta encontrar el lead
-    let lead = null;
-    let leadResponse = null;
-    let kommoAccountUsed = null;
+  const contacto = await obtenerContactoDesdeLead(leadId, kommoId, token);
 
-    // Intentar obtener el lead de cada cuenta hasta encontrarlo
-    for (const [accountId, account] of Object.entries(kommoAccounts)) {
-      try {
-        leadResponse = await axios.get(`https://${account.domain}/api/v4/leads/${leadId}`, {
+  if (contacto) {
+    console.log("🧾 ID del contacto:", contacto.id);
+
+    const leadResponse = await axios.get(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}`, {
       headers: {
-            'Authorization': `Bearer ${account.token}`
-          }
-        });
-        if (leadResponse.data) {
-          lead = leadResponse.data;
-          kommoAccountUsed = { id: accountId, ...account };
-          console.log(`✅ Lead encontrado en la cuenta ${accountId}`);
-          break;
-        }
-      } catch (error) {
-        console.log(`⚠️ No se encontró el lead en la cuenta ${accountId}`);
-        continue;
+        'Authorization': `Bearer ${token}`
       }
-    }
+    });
+    const lead = leadResponse.data;
 
-    if (!lead) {
-      console.error("❌ No se pudo encontrar el lead en ninguna cuenta");
-      return res.sendStatus(200);
-    }
-
-    // Buscar el campo personalizado 'mensajeenviar'
+    // Paso 2: Buscar el campo personalizado 'mensajeenviar'
     const campoMensaje = lead.custom_fields_values?.find(field =>
       field.field_name === "mensajeenviar"
     );
     const mensaje = campoMensaje?.values?.[0]?.value;
 
-    // Extraer el ID del mensaje
-    const idExtraido = mensaje?.match(/\d{13,}/)?.[0];
+    console.log("📝 Mensaje guardado en el lead (mensajeenviar):", mensaje);
+
+    // Paso 3: Extraer el ID si el mensaje incluye uno
+    const idExtraido = mensaje?.match(/\d{13,}/)?.[0]; // extrae número de 13+ dígitos
     console.log("🧾 ID extraído del mensaje:", idExtraido);
 
-    if (!idExtraido) {
-      console.log("⚠️ No se pudo extraer un ID del mensaje");
-      return res.sendStatus(200);
-    }
+    // Paso 4: Buscar en MongoDB si ese ID existe
+    if (idExtraido) {
 
-    // Buscar el registro en MongoDB
-    const registro = await Registro.findOne({ id: idExtraido });
-    
-    if (!registro) {
-      console.log("❌ No se encontró un registro con ese ID");
-      return res.sendStatus(200);
-    }
+      let registro;
 
-    // Verificar que estamos usando la cuenta correcta
-    if (registro.kommoAccount !== kommoAccountUsed.id) {
-      console.log(`⚠️ El lead se encontró en ${kommoAccountUsed.id} pero el registro corresponde a ${registro.kommoAccount}`);
-      // Intentar obtener el lead con la cuenta correcta
-      try {
-        const correctAccount = kommoAccounts[registro.kommoAccount];
-        leadResponse = await axios.get(`https://${correctAccount.domain}/api/v4/leads/${leadId}`, {
-          headers: {
-            'Authorization': `Bearer ${correctAccount.token}`
-          }
-        });
-        lead = leadResponse.data;
-        kommoAccountUsed = { id: registro.kommoAccount, ...correctAccount };
-      } catch (error) {
-        console.error("❌ Error al obtener el lead con la cuenta correcta:", error.message);
-        return res.sendStatus(200);
+      if (kommoId === "cajaadmi01") {
+        registro = await RegistroMacleyn.findOne({ id: idExtraido });
+      } else if (kommoId === "luchito463") {
+        registro = await RegistroLuchito.findOne({ id: idExtraido })
       }
-    }
 
-    // Obtener el contacto usando las credenciales correctas
-    const contacto = await obtenerContactoDesdeLead(leadId, kommoAccountUsed);
+      // Ejecutar pixel de Meta (API de Conversiones)
+      if (registro) {
+        console.log("✅ Registro encontrado:", registro);
 
-    if (contacto) {
-      console.log("✅ Contacto encontrado:", contacto);
+        try {
 
-  try {
-        // Ejecutar pixel de Meta
-    const pixelResponse = await axios.post(
-      `https://graph.facebook.com/v19.0/${registro.pixel}/events`,
-      {
-        data: [
-          {
-            event_name: "LeadConfirmado",
-            event_time: Math.floor(Date.now() / 1000),
-            action_source: "website",
-            event_source_url: `https://${registro.subdominio}.${registro.dominio}`,
-            user_data: {
-              client_ip_address: registro.ip,
-              client_user_agent: req.headers["user-agent"],
+          const PIXEL_ID = registro.pixel
+
+          // 🧠 Disparar el Pixel de Meta
+          !function (f, b, e, v, n, t, s) {
+            if (f.fbq) return;
+            n = f.fbq = function () {
+              n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
+            };
+            if (!f._fbq) f._fbq = n;
+            n.push = n;
+            n.loaded = !0;
+            n.version = '2.0';
+            n.queue = [];
+            t = b.createElement(e); t.async = !0;
+            t.src = v;
+            s = b.getElementsByTagName(e)[0];
+            s.parentNode.insertBefore(t, s)
+          }(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
+
+          fbq('init', PIXEL_ID);
+          fbq('track', 'PageView');
+
+          const pixelResponse = await axios.post(
+            `https://graph.facebook.com/v19.0/${registro.pixel}/events`,
+            {
+              data: [
+                {
+                  event_name: "Click",
+                  event_time: Math.floor(Date.now() / 1000),
+                  action_source: "website",
+                  event_source_url: `https://${registro.subdominio}.${registro.dominio}`,
+                  user_data: {
+                    client_ip_address: registro.ip,
+                    client_user_agent: req.headers["user-agent"],
+                  },
+                },
+              ],
             },
-          },
-        ],
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${registro.token}`,
-          "Content-Type": "application/json",
-        },
+            {
+              headers: {
+                Authorization: `Bearer ${registro.token}`,
+                "Content-Type": "application/json",
+              },
+            }
+          );
+
+
+
+          console.log("📡 Pixel ejecutado con éxito:", pixelResponse.data);
+        } catch (error) {
+          console.error("❌ Error al ejecutar el pixel:", error.response?.data || error.message);
+        }
+
+      } else {
+        console.log("❌ No se encontró un registro con ese ID");
       }
-    );
-
-    console.log("📡 Pixel ejecutado con éxito:", pixelResponse.data);
-  } catch (error) {
-    console.error("❌ Error al ejecutar el pixel:", error.response?.data || error.message);
-  }
+    } else {
+      console.log("⚠️ No se pudo extraer un ID del mensaje");
     }
-
-res.sendStatus(200);
-  } catch (error) {
-    console.error("❌ Error general:", error);
-    res.sendStatus(500);
   }
+  res.sendStatus(200);
 });
 
-async function obtenerContactoDesdeLead(leadId, kommoAccount) {
-  const url = `https://${kommoAccount.domain}/api/v4/leads/${leadId}?with=contacts`;
+
+async function obtenerContactoDesdeLead(leadId, kommoId, token) {
+  const url = `https://${kommoId}.kommo.com/api/v4/leads/${leadId}?with=contacts`;
 
   try {
     const response = await axios.get(url, {
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${kommoAccount.token}`
+        'Authorization': `Bearer ${token}`
       }
     });
 
     const lead = response.data;
-    return lead._embedded?.contacts?.[0];
+    const contacto = lead._embedded?.contacts?.[0]; // primer contacto vinculado
+
+    if (!contacto) {
+      console.log("⚠️ No se encontró ningún contacto asociado a este lead");
+      return null;
+    }
+
+    console.log("✅ Contacto vinculado al lead:", contacto);
+    return contacto;
+
   } catch (err) {
     console.error("❌ Error al obtener contacto desde lead:", err.response?.data || err.message);
     return null;
