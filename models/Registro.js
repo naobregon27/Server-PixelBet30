@@ -30,11 +30,9 @@ const registroSchema = new mongoose.Schema({
     mensaje: String,
     kommoAccount: {
         type: String,
-        required: true,
     },
     whatsappNumber: {
         type: String,
-        required: true,
     },
   createdAt: {
     type: Date,
