@@ -46,6 +46,8 @@ app.post("/guardar", async (req, res) => {
     const { id, token, pixel, subdominio, dominio, ip, fbclid, mensaje } =
       req.body;
 
+    const { kommoId } = req.query;
+
     // 1. Verificación de campos obligatorios
     if (!id || !token || !pixel || !subdominio || !dominio || !ip) {
       return res.status(400).json({ error: "Faltan campos obligatorios" });
@@ -60,24 +62,47 @@ app.post("/guardar", async (req, res) => {
       return res.status(400).json({ error: "IP no es válida" });
     }
 
+    let existente;
     // 3. Evitar duplicados si el ID ya existe
-    const existente = await RegistroMacleyn.findOne({ id });
+    if (kommoId === "cajaadmi01") {
+      existente = await RegistroMacleyn.findOne({ id });
+    } else if (kommoId === "luchito4637") {
+      existente = await RegistroLuchito.findOne({ id });
+    }
+
     if (existente) {
       return res.status(409).json({ error: "Este ID ya fue registrado" });
     }
 
-    // 4. Guardar en la base de datos
-    const nuevoRegistro = new RegistroMacleyn({
-      id,
-      token,
-      pixel,
-      subdominio,
-      dominio,
-      ip,
-      fbclid,
-      mensaje,
-    });
-    await nuevoRegistro.save();
+    let nuevoRegistro;
+
+    if (kommoId === "cajaadmi01") {
+      nuevoRegistro = new RegistroMacleyn({
+        id,
+        token,
+        pixel,
+        subdominio,
+        dominio,
+        ip,
+        fbclid,
+        mensaje,
+      });
+
+      await nuevoRegistro.save();
+    } else if (kommoId === "luchito4637") {
+      nuevoRegistro = new RegistroLuchito({
+        id,
+        token,
+        pixel,
+        subdominio,
+        dominio,
+        ip,
+        fbclid,
+        mensaje,
+      });
+
+      await nuevoRegistro.save();
+    }
 
     res.status(201).json({ mensaje: "Datos guardados con éxito" });
   } catch (err) {
