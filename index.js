@@ -161,35 +161,42 @@ app.post("/verificacion", async (req, res) => {
         try {
           // Generar fbc, fbp y event_id
           const cookies = req.cookies;
-          const fbclid = registro.fbclid
+          const fbclid = registro.fbclid;
 
           const fbc = cookies._fbc || (fbclid ? `fb.1.${Math.floor(Date.now() / 1000)}.${fbclid}` : null);
           const fbp = cookies._fbp || `fb.1.${Math.floor(Date.now() / 1000)}.${Math.floor(1000000000 + Math.random() * 9000000000)}`;
-          const event_id = registro.pixel || `lead_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+
+          // Asegúrate de que event_id sea único y no el ID del píxel
+          const event_id = `lead_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+
+          // URL con el parámetro access_token correctamente
+          const pixelEndpointUrl = `https://graph.facebook.com/v18.0/${registro.pixel}/events?access_token=${registro.token}`;
+
+          const eventData = {
+            event_name: "Lead",
+            event_id,
+            event_time: Math.floor(Date.now() / 1000),
+            action_source: "website",
+            event_source_url: `https://${registro.subdominio}.${registro.dominio}`,
+            user_data: {
+              client_ip_address: registro.ip,
+              client_user_agent: req.headers["user-agent"],
+              em: registro.email ? require("crypto").createHash("sha256").update(registro.email).digest("hex") : undefined,
+              fbc,
+              fbp
+            },
+          };
+
+          console.log("Datos del evento a enviar:", JSON.stringify(eventData, null, 2)); // Para depuración
+          console.log("URL del Pixel:", pixelEndpointUrl); // Para depuración
 
           const pixelResponse = await axios.post(
-            `https://graph.facebook.com/v19.0/${registro.pixel}/events`,
+            pixelEndpointUrl,
             {
-              data: [
-                {
-                  event_name: "Lead",
-                  event_id,
-                  event_time: Math.floor(Date.now() / 1000),
-                  action_source: "website",
-                  event_source_url: `https://${registro.subdominio}.${registro.dominio}`,
-                  user_data: {
-                    client_ip_address: registro.ip,
-                    client_user_agent: req.headers["user-agent"],
-                    em: registro.email ? require("crypto").createHash("sha256").update(registro.email).digest("hex") : undefined,
-                    fbc,
-                    fbp
-                  },
-                },
-              ],
+              data: [eventData], // Envuelve el evento en un array 'data'
             },
             {
               headers: {
-                Authorization: `Bearer ${registro.token}`,
                 "Content-Type": "application/json",
               },
             }
@@ -198,6 +205,18 @@ app.post("/verificacion", async (req, res) => {
           console.log("📡 Pixel ejecutado con éxito:", pixelResponse.data);
         } catch (error) {
           console.error("❌ Error al ejecutar el pixel:", error.response?.data || error.message);
+          if (error.response) {
+            // La solicitud se hizo y el servidor respondió con un estado de error (ej. 4xx o 5xx)
+            console.error("Estado del error:", error.response.status);
+            console.error("Encabezados del error:", error.response.headers);
+            console.error("Datos del error:", error.response.data);
+          } else if (error.request) {
+            // La solicitud se hizo pero no se recibió respuesta (ej. sin conexión a internet)
+            console.error("No se recibió respuesta del servidor:", error.request);
+          } else {
+            // Algo más causó el error
+            console.error("Error desconocido:", error.message);
+          }
         }
       } else {
         console.log("❌ No se encontró un registro con ese ID");
