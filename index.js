@@ -154,7 +154,6 @@ app.post("/verificacion", async (req, res) => {
     console.log("🧾 ID extraído del mensaje:", idExtraido);
 
     if (idExtraido) {
-      let registro;
       let Modelo;
 
       if (kommoId === "cajaadmi01") {
@@ -164,13 +163,17 @@ app.post("/verificacion", async (req, res) => {
       }
 
       try {
-        registro = await Modelo.findOne({ id: idExtraido });
+        let registro = await Modelo.findOne({ id: idExtraido });
 
         if (registro) {
           console.log("✅ Registro encontrado:", registro);
 
+          if (registro.isVerified) {
+            return console.log("Registro ya pixeleado")
+          }
+
           // Obtener el número de WhatsApp del contacto
-          const whatsappNumber = contacto.custom_fields_values?.find(field => 
+          const whatsappNumber = contacto.custom_fields_values?.find(field =>
             field.field_code === "PHONE" || field.field_name?.toLowerCase().includes("whatsapp")
           )?.values?.[0]?.value;
 
@@ -232,10 +235,10 @@ app.post("/verificacion", async (req, res) => {
               mensaje: "Verificación completada exitosamente",
               estado: "verificado"
             });
-            
+
           } catch (error) {
             console.error("❌ Error al ejecutar el pixel:", error.response?.data || error.message);
-            
+
             // Actualizar el registro con el error
             registro.isVerified = false;
             registro.verificationStatus = 'fallido';
