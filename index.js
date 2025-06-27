@@ -169,6 +169,16 @@ app.post("/verificacion", async (req, res) => {
         if (registro) {
           console.log("✅ Registro encontrado:", registro);
 
+          // Obtener el número de WhatsApp del contacto
+          const whatsappNumber = contacto.custom_fields_values?.find(field => 
+            field.field_code === "PHONE" || field.field_name?.toLowerCase().includes("whatsapp")
+          )?.values?.[0]?.value;
+
+          if (whatsappNumber) {
+            registro.whatsappNumber = whatsappNumber;
+            console.log("📱 Número de WhatsApp guardado:", whatsappNumber);
+          }
+
           // Intentamos verificar el registro
           try {
             // Generar fbc, fbp y event_id
