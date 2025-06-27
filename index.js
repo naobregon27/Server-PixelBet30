@@ -121,7 +121,14 @@ app.post("/verificacion", async (req, res) => {
   const leadId = req.body?.leads?.add?.[0]?.id;
 
   if (!leadId) {
-    return res.status(400).send("Lead ID no encontrado");
+    return res.status(400).json({
+      error: "Lead ID no encontrado",
+      detalles: {
+        tipo: 'lead_no_encontrado',
+        mensaje: "No se encontró el ID del lead en la solicitud",
+        timestamp: new Date()
+      }
+    });
   }
 
   const contacto = await obtenerContactoDesdeLead(leadId, kommoId, token);
@@ -148,87 +155,146 @@ app.post("/verificacion", async (req, res) => {
 
     if (idExtraido) {
       let registro;
+      let Modelo;
 
       if (kommoId === "cajaadmi01") {
-        registro = await RegistroMacleyn.findOne({ id: idExtraido });
+        Modelo = RegistroMacleyn;
       } else if (kommoId === "luchito4637") {
-        registro = await RegistroLuchito.findOne({ id: idExtraido });
+        Modelo = RegistroLuchito;
       }
 
-      if (registro) {
-        console.log("✅ Registro encontrado:", registro);
+      try {
+        registro = await Modelo.findOne({ id: idExtraido });
 
-        try {
-          // Generar fbc, fbp y event_id
-          const cookies = req.cookies;
-          const fbclid = registro.fbclid;
+        if (registro) {
+          console.log("✅ Registro encontrado:", registro);
 
-          const fbc = cookies._fbc || (fbclid ? `fb.1.${Math.floor(Date.now() / 1000)}.${fbclid}` : null);
-          const fbp = cookies._fbp || `fb.1.${Math.floor(Date.now() / 1000)}.${Math.floor(1000000000 + Math.random() * 9000000000)}`;
+          // Intentamos verificar el registro
+          try {
+            // Generar fbc, fbp y event_id
+            const cookies = req.cookies;
+            const fbclid = registro.fbclid;
 
-          // Asegúrate de que event_id sea único y no el ID del píxel
-          const event_id = `lead_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+            const fbc = cookies._fbc || (fbclid ? `fb.1.${Math.floor(Date.now() / 1000)}.${fbclid}` : null);
+            const fbp = cookies._fbp || `fb.1.${Math.floor(Date.now() / 1000)}.${Math.floor(1000000000 + Math.random() * 9000000000)}`;
+            const event_id = `lead_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
 
-          // URL con el parámetro access_token correctamente
-          const pixelEndpointUrl = `https://graph.facebook.com/v18.0/${registro.pixel}/events?access_token=${registro.token}`;
+            // Marcar como verificado
+            registro.isVerified = true;
+            registro.verificationStatus = 'verificado';
+            await registro.save();
 
-          const eventData = {
-            event_name: "Lead",
-            event_id,
-            event_time: Math.floor(Date.now() / 1000),
-            action_source: "website",
-            event_source_url: `https://${registro.subdominio}.${registro.dominio}`,
-            user_data: {
-              client_ip_address: registro.ip,
-              client_user_agent: req.headers["user-agent"],
-              em: registro.email ? require("crypto").createHash("sha256").update(registro.email).digest("hex") : undefined,
-              fbc,
-              fbp
-            },
-          };
+            // URL con el parámetro access_token correctamente
+            const pixelEndpointUrl = `https://graph.facebook.com/v18.0/${registro.pixel}/events?access_token=${registro.token}`;
 
-          console.log("Datos del evento a enviar:", JSON.stringify(eventData, null, 2)); // Para depuración
-          console.log("URL del Pixel:", pixelEndpointUrl); // Para depuración
-
-          const pixelResponse = await axios.post(
-            pixelEndpointUrl,
-            {
-              data: [eventData], // Envuelve el evento en un array 'data'
-            },
-            {
-              headers: {
-                "Content-Type": "application/json",
+            const eventData = {
+              event_name: "Lead",
+              event_id,
+              event_time: Math.floor(Date.now() / 1000),
+              action_source: "website",
+              event_source_url: `https://${registro.subdominio}.${registro.dominio}`,
+              user_data: {
+                client_ip_address: registro.ip,
+                client_user_agent: req.headers["user-agent"],
+                em: registro.email ? require("crypto").createHash("sha256").update(registro.email).digest("hex") : undefined,
+                fbc,
+                fbp
               },
-            }
-          );
+            };
 
-          console.log("📡 Pixel ejecutado con éxito:", pixelResponse.data);
-        } catch (error) {
-          console.error("❌ Error al ejecutar el pixel:", error.response?.data || error.message);
-          if (error.response) {
-            // La solicitud se hizo y el servidor respondió con un estado de error (ej. 4xx o 5xx)
-            console.error("Estado del error:", error.response.status);
-            console.error("Encabezados del error:", error.response.headers);
-            console.error("Datos del error:", error.response.data);
-          } else if (error.request) {
-            // La solicitud se hizo pero no se recibió respuesta (ej. sin conexión a internet)
-            console.error("No se recibió respuesta del servidor:", error.request);
-          } else {
-            // Algo más causó el error
-            console.error("Error desconocido:", error.message);
+            console.log("Datos del evento a enviar:", JSON.stringify(eventData, null, 2));
+            console.log("URL del Pixel:", pixelEndpointUrl);
+
+            const pixelResponse = await axios.post(
+              pixelEndpointUrl,
+              {
+                data: [eventData],
+              },
+              {
+                headers: {
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+
+            console.log("📡 Pixel ejecutado con éxito:", pixelResponse.data);
+            return res.status(200).json({
+              mensaje: "Verificación completada exitosamente",
+              estado: "verificado"
+            });
+            
+          } catch (error) {
+            console.error("❌ Error al ejecutar el pixel:", error.response?.data || error.message);
+            
+            // Actualizar el registro con el error
+            registro.isVerified = false;
+            registro.verificationStatus = 'fallido';
+            registro.verificationError = {
+              tipo: 'pixel_error',
+              mensaje: error.response?.data?.error?.message || error.message,
+              timestamp: new Date()
+            };
+            await registro.save();
+
+            if (error.response) {
+              console.error("Estado del error:", error.response.status);
+              console.error("Encabezados del error:", error.response.headers);
+              console.error("Datos del error:", error.response.data);
+            } else if (error.request) {
+              console.error("No se recibió respuesta del servidor:", error.request);
+            } else {
+              console.error("Error desconocido:", error.message);
+            }
+
+            return res.status(500).json({
+              error: "Error al ejecutar el pixel",
+              detalles: registro.verificationError
+            });
           }
+        } else {
+          console.log("❌ No se encontró un registro con ese ID");
+          return res.status(404).json({
+            error: "Registro no encontrado",
+            detalles: {
+              tipo: 'registro_no_encontrado',
+              mensaje: `No se encontró un registro con el ID ${idExtraido}`,
+              timestamp: new Date()
+            }
+          });
         }
-      } else {
-        console.log("❌ No se encontró un registro con ese ID");
+      } catch (error) {
+        console.error("Error al buscar o actualizar el registro:", error);
+        return res.status(500).json({
+          error: "Error interno",
+          detalles: {
+            tipo: 'error_interno',
+            mensaje: error.message,
+            timestamp: new Date()
+          }
+        });
       }
     } else {
       console.log("⚠️ No se pudo extraer un ID del mensaje");
+      return res.status(400).json({
+        error: "ID no encontrado",
+        detalles: {
+          tipo: 'id_no_encontrado',
+          mensaje: "No se pudo extraer un ID válido del mensaje",
+          timestamp: new Date()
+        }
+      });
     }
   }
 
-  res.sendStatus(200);
+  return res.status(400).json({
+    error: "Contacto no encontrado",
+    detalles: {
+      tipo: 'contacto_no_encontrado',
+      mensaje: "No se pudo obtener la información del contacto",
+      timestamp: new Date()
+    }
+  });
 });
-
 
 async function obtenerContactoDesdeLead(leadId, kommoId, token) {
   const url = `https://${kommoId}.kommo.com/api/v4/leads/${leadId}?with=contacts`;

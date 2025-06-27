@@ -34,10 +34,24 @@ const registroSchema = new mongoose.Schema({
     whatsappNumber: {
         type: String,
     },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  }
+    createdAt: {
+        type: Date,
+        default: Date.now
+    },
+    isVerified: {
+        type: Boolean,
+        default: false
+    },
+    verificationStatus: {
+        type: String,
+        enum: ['pendiente', 'verificado', 'fallido'],
+        default: 'pendiente'
+    },
+    verificationError: {
+        tipo: String,
+        mensaje: String,
+        timestamp: Date
+    }
 });
 
 module.exports = mongoose.model('RegistroMacleyn', registroSchema);
