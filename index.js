@@ -88,6 +88,7 @@ app.post("/guardar", async (req, res) => {
         ip,
         fbclid,
         mensaje,
+        fbclidTimestamp: fbclid ? new Date() : null
       });
 
       await nuevoRegistro.save();
@@ -101,6 +102,7 @@ app.post("/guardar", async (req, res) => {
         ip,
         fbclid,
         mensaje,
+        fbclidTimestamp: fbclid ? new Date() : null
       });
 
       await nuevoRegistro.save();
@@ -169,6 +171,15 @@ app.post("/verificacion", async (req, res) => {
         if (registro) {
           console.log("✅ Registro encontrado:", registro);
 
+          // Verificar si ya enviamos el evento a Meta
+          if (registro.eventSentToMeta) {
+            console.log("⚠️ Este evento ya fue enviado a Meta anteriormente");
+            return res.status(200).json({
+              mensaje: "Evento ya procesado anteriormente",
+              estado: "verificado"
+            });
+          }
+
           // Obtener el número de WhatsApp del contacto
           const whatsappNumber = contacto.custom_fields_values?.find(field => 
             field.field_code === "PHONE" || field.field_name?.toLowerCase().includes("whatsapp")
@@ -184,14 +195,18 @@ app.post("/verificacion", async (req, res) => {
             // Generar fbc, fbp y event_id
             const cookies = req.cookies;
             const fbclid = registro.fbclid;
-
-            const fbc = cookies._fbc || (fbclid ? `fb.1.${Math.floor(Date.now() / 1000)}.${fbclid}` : null);
+            
+            // Usar el timestamp original del fbclid o el actual si no existe
+            const fbcTimestamp = registro.fbclidTimestamp ? Math.floor(registro.fbclidTimestamp.getTime() / 1000) : Math.floor(Date.now() / 1000);
+            const fbc = cookies._fbc || (fbclid ? `fb.1.${fbcTimestamp}.${fbclid}` : null);
             const fbp = cookies._fbp || `fb.1.${Math.floor(Date.now() / 1000)}.${Math.floor(1000000000 + Math.random() * 9000000000)}`;
             const event_id = `lead_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
 
             // Marcar como verificado
             registro.isVerified = true;
             registro.verificationStatus = 'verificado';
+            registro.eventSentToMeta = true;
+            registro.lastEventSentAt = new Date();
             await registro.save();
 
             // URL con el parámetro access_token correctamente

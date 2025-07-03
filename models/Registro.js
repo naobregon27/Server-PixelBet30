@@ -27,6 +27,18 @@ const registroSchema = new mongoose.Schema({
         required: true,
     },
     fbclid: String,
+    fbclidTimestamp: {
+        type: Date,
+        default: null
+    },
+    eventSentToMeta: {
+        type: Boolean,
+        default: false
+    },
+    lastEventSentAt: {
+        type: Date,
+        default: null
+    },
     mensaje: String,
     kommoAccount: {
         type: String,
