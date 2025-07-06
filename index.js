@@ -70,6 +70,16 @@ app.post("/guardar", async (req, res) => {
       existente = await RegistroMacleyn.findOne({ id });
     } else if (kommoId === "luchito4637") {
       existente = await RegistroLuchito.findOne({ id });
+    } else if (kommoId === "Bet30uno") {
+      existente = await RegistroBet30uno.findOne({ id });
+    } else if (kommoId === "Bet30dos") {
+      existente = await RegistroBet30dos.findOne({ id });
+    } else if (kommoId === "Bet30tres") {
+      existente = await RegistroBet30tres.findOne({ id });
+    } else if (kommoId === "Ganamosnet") {
+      existente = await RegistroGanamosnet.findOne({ id });
+    } else if (kommoId === "Cash365") {
+      existente = await RegistroCash365.findOne({ id });
     }
 
     if (existente) {
@@ -93,6 +103,71 @@ app.post("/guardar", async (req, res) => {
       await nuevoRegistro.save();
     } else if (kommoId === "luchito4637") {
       nuevoRegistro = new RegistroLuchito({
+        id,
+        token,
+        pixel,
+        subdominio,
+        dominio,
+        ip,
+        fbclid,
+        mensaje,
+      });
+
+      await nuevoRegistro.save();
+    }  else if (kommoId === "blackpanther1") {
+      nuevoRegistro = new RegistroBet30uno({
+        id,
+        token,
+        pixel,
+        subdominio,
+        dominio,
+        ip,
+        fbclid,
+        mensaje,
+      });
+
+      await nuevoRegistro.save();
+    }  else if (kommoId === "blackpanther2") {
+      nuevoRegistro = new RegistroBet30dos({
+        id,
+        token,
+        pixel,
+        subdominio,
+        dominio,
+        ip,
+        fbclid,
+        mensaje,
+      });
+
+      await nuevoRegistro.save();
+    }  else if (kommoId === "blackpanther3") {
+      nuevoRegistro = new RegistroBet30tres({
+        id,
+        token,
+        pixel,
+        subdominio,
+        dominio,
+        ip,
+        fbclid,
+        mensaje,
+      });
+
+      await nuevoRegistro.save();
+    }  else if (kommoId === "Ganamosnet") {
+      nuevoRegistro = new RegistroGanamosnet({
+        id,
+        token,
+        pixel,
+        subdominio,
+        dominio,
+        ip,
+        fbclid,
+        mensaje,
+      });
+
+      await nuevoRegistro.save();
+    } else if (kommoId === "Cash365") {
+      nuevoRegistro = new RegistroCash365({
         id,
         token,
         pixel,
@@ -160,6 +235,16 @@ app.post("/verificacion", async (req, res) => {
         Modelo = RegistroMacleyn;
       } else if (kommoId === "luchito4637") {
         Modelo = RegistroLuchito;
+      } else if (kommoId === "blackpanther1") {
+        Modelo = RegistroBet30;
+      } else if (kommoId === "blackpanther2") {
+        Modelo = RegistroBet30;
+      } else if (kommoId === "blackpanther3") {
+        Modelo = RegistroBet30;
+      } else if (kommoId === "Ganamosnet") {
+        Modelo = RegistroGanamosnet;
+      } else if (kommoId === "Cash365") {
+        Modelo = RegistroCash365;
       }
 
       try {
