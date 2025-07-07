@@ -231,7 +231,7 @@ app.post("/verificacion", async (req, res) => {
     console.log("📝 Mensaje guardado en el lead (mensajeenviar):", mensaje);
 
     const idExtraido = mensaje?.match(/\d{13,}/)?.[0];
-    console.log("🧾 ID extraído del mensaje:", idExtraido);
+    console.log("🧾 ID extraído del mensaje:", idExtraido); //cambios
 
     if (idExtraido) {
       let Modelo;
