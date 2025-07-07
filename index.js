@@ -3,6 +3,11 @@ const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const RegistroMacleyn = require("./models/Registro");
 const RegistroLuchito = require("./models/RegistroLuchito");
+const RegistroBet30uno = require("./models/RegistroBet30uno");
+const RegistroBet30dos = require("./models/RegistroBet30dos");
+const RegistroBet30tres = require("./models/RegistroBet30tres");
+const RegistroGanamosnet = require("./models/RegistroGanamosnet");
+const RegistroCash365 = require("./models/RegistroCash365");
 const axios = require('axios');
 const cookieParser = require("cookie-parser");
 
@@ -70,11 +75,11 @@ app.post("/guardar", async (req, res) => {
       existente = await RegistroMacleyn.findOne({ id });
     } else if (kommoId === "luchito4637") {
       existente = await RegistroLuchito.findOne({ id });
-    } else if (kommoId === "Bet30uno") {
+    } else if (kommoId === "blackpanther1") {
       existente = await RegistroBet30uno.findOne({ id });
-    } else if (kommoId === "Bet30dos") {
+    } else if (kommoId === "blackpanther2") {
       existente = await RegistroBet30dos.findOne({ id });
-    } else if (kommoId === "Bet30tres") {
+    } else if (kommoId === "blackpanther3") {
       existente = await RegistroBet30tres.findOne({ id });
     } else if (kommoId === "Ganamosnet") {
       existente = await RegistroGanamosnet.findOne({ id });
@@ -236,11 +241,11 @@ app.post("/verificacion", async (req, res) => {
       } else if (kommoId === "luchito4637") {
         Modelo = RegistroLuchito;
       } else if (kommoId === "blackpanther1") {
-        Modelo = RegistroBet30;
+        Modelo = RegistroBet30uno;
       } else if (kommoId === "blackpanther2") {
-        Modelo = RegistroBet30;
+        Modelo = RegistroBet30dos;
       } else if (kommoId === "blackpanther3") {
-        Modelo = RegistroBet30;
+        Modelo = RegistroBet30tres;
       } else if (kommoId === "Ganamosnet") {
         Modelo = RegistroGanamosnet;
       } else if (kommoId === "Cash365") {
