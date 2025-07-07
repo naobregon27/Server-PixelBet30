@@ -66,4 +66,4 @@ const registroSchema = new mongoose.Schema({
     }
 });
 
-module.exports = mongoose.model('RegistroBet30dos', registroSchema);
+module.exports = mongoose.model('RegistroBetthree', registroSchema);
