@@ -66,4 +66,4 @@ const registroSchema = new mongoose.Schema({
     }
 });
 
-module.exports = mongoose.model('RegistroBetuno', registroSchema);
+module.exports = mongoose.model('RegistroBetone', registroSchema);
