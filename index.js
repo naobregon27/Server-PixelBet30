@@ -6,6 +6,7 @@ const RegistroLuchito = require("./models/RegistroLuchito");
 const RegistroBetone = require("./models/RegistroBetone");
 const RegistroBettwo = require("./models/RegistroBettwo");
 const RegistroBetthree = require("./models/RegistroBetthree");
+const RegistroBetFour = require("./models/RegistroBetFour");
 const RegistroGanamosnet = require("./models/RegistroGanamosnet");
 const RegistroCash365 = require("./models/RegistroCash365");
 const axios = require('axios');
@@ -81,6 +82,8 @@ app.post("/guardar", async (req, res) => {
       existente = await RegistroBettwo.findOne({ id });
     } else if (kommoId === "blackpanther3") {
       existente = await RegistroBetthree.findOne({ id });
+    } else if (kommoId === "blackpanther4") {
+      existente = await RegistroBetFour.findOne({ id });
     } else if (kommoId === "Ganamosnet") {
       existente = await RegistroGanamosnet.findOne({ id });
     } else if (kommoId === "Cash365") {
@@ -147,6 +150,19 @@ app.post("/guardar", async (req, res) => {
       await nuevoRegistro.save();
     }  else if (kommoId === "blackpanther3") {
       nuevoRegistro = new RegistroBetthree({
+        id,
+        token,
+        pixel,
+        subdominio,
+        dominio,
+        ip,
+        fbclid,
+        mensaje,
+      });
+
+      await nuevoRegistro.save();
+    }  else if (kommoId === "blackpanther4") {
+      nuevoRegistro = new RegistroBetFour({
         id,
         token,
         pixel,
@@ -246,6 +262,8 @@ app.post("/verificacion", async (req, res) => {
         Modelo = RegistroBettwo;
       } else if (kommoId === "blackpanther3") {
         Modelo = RegistroBetthree;
+      } else if (kommoId === "blackpanther4") {
+        Modelo = RegistroBetFour;
       } else if (kommoId === "Ganamosnet") {
         Modelo = RegistroGanamosnet;
       } else if (kommoId === "Cash365") {
