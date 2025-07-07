@@ -9,6 +9,7 @@ const RegistroBetthree = require("./models/RegistroBetthree");
 const RegistroBetFour = require("./models/RegistroBetFour");
 const RegistroGanamosnet = require("./models/RegistroGanamosnet");
 const RegistroCash365 = require("./models/RegistroCash365");
+const Registromctitan = require("./models/Registromctitan");
 const axios = require('axios');
 const cookieParser = require("cookie-parser");
 
@@ -88,6 +89,8 @@ app.post("/guardar", async (req, res) => {
       existente = await RegistroGanamosnet.findOne({ id });
     } else if (kommoId === "Cash365") {
       existente = await RegistroCash365.findOne({ id });
+    } else if (kommoId === "mctitan") {
+      existente = await Registromctitan.findOne({ id });
     }
 
     if (existente) {
@@ -200,6 +203,19 @@ app.post("/guardar", async (req, res) => {
       });
 
       await nuevoRegistro.save();
+    } else if (kommoId === "mctitan") {
+      nuevoRegistro = new Registromctitan({
+        id,
+        token,
+        pixel,
+        subdominio,
+        dominio,
+        ip,
+        fbclid,
+        mensaje,
+      });
+
+      await nuevoRegistro.save();
     }
 
     res.status(201).json({ mensaje: "Datos guardados con éxito" });
@@ -268,6 +284,8 @@ app.post("/verificacion", async (req, res) => {
         Modelo = RegistroGanamosnet;
       } else if (kommoId === "Cash365") {
         Modelo = RegistroCash365;
+      } else if (kommoId === "mctitan") {
+        Modelo = Registromctitan;
       }
 
       try {
