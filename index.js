@@ -243,18 +243,6 @@ app.post("/verificacion", async (req, res) => {
     });
   }
 
-  const notesResponse = await axios.get(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}/notes`, {
-    headers: {
-      'Authorization': `Bearer ${token}`
-    }
-  });
-
-  console.log("esto es el notesResponse: ", notesResponse)
-
-  const notes = notesResponse.data._embedded.notes;
-
-  console.log("esto es el notes : ", notes)
-
   const contacto = await obtenerContactoDesdeLead(leadId, kommoId, token);
 
   if (contacto) {
@@ -266,9 +254,6 @@ app.post("/verificacion", async (req, res) => {
       }
     });
     const lead = leadResponse.data;
-
-    console.log("esto devuelve el lead puro : ", leadResponse)
-    console.log("esto devuelve el lead.data : ", lead)
 
     const campoMensaje = lead.custom_fields_values?.find(field =>
       field.field_name === "mensajeenviar"
