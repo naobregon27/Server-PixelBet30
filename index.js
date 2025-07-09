@@ -125,7 +125,7 @@ app.post("/guardar", async (req, res) => {
       });
 
       await nuevoRegistro.save();
-    }  else if (kommoId === "blackpanther1") {
+    } else if (kommoId === "blackpanther1") {
       nuevoRegistro = new RegistroBetone({
         id,
         token,
@@ -138,7 +138,7 @@ app.post("/guardar", async (req, res) => {
       });
 
       await nuevoRegistro.save();
-    }  else if (kommoId === "blackpanther2") {
+    } else if (kommoId === "blackpanther2") {
       nuevoRegistro = new RegistroBettwo({
         id,
         token,
@@ -151,7 +151,7 @@ app.post("/guardar", async (req, res) => {
       });
 
       await nuevoRegistro.save();
-    }  else if (kommoId === "blackpanther3") {
+    } else if (kommoId === "blackpanther3") {
       nuevoRegistro = new RegistroBetthree({
         id,
         token,
@@ -164,7 +164,7 @@ app.post("/guardar", async (req, res) => {
       });
 
       await nuevoRegistro.save();
-    }  else if (kommoId === "blackpanther4") {
+    } else if (kommoId === "blackpanther4") {
       nuevoRegistro = new RegistroBetFour({
         id,
         token,
@@ -177,7 +177,7 @@ app.post("/guardar", async (req, res) => {
       });
 
       await nuevoRegistro.save();
-    }  else if (kommoId === "Ganamosnet") {
+    } else if (kommoId === "Ganamosnet") {
       nuevoRegistro = new RegistroGanamosnet({
         id,
         token,
@@ -242,6 +242,18 @@ app.post("/verificacion", async (req, res) => {
       }
     });
   }
+
+  const notesResponse = await axios.get(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}/notes`, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+
+  console.log("esto es el notesResponse: ", notesResponse)
+
+  const notes = notesResponse.data._embedded.notes;
+
+  console.log("esto es el notes : ", notes)
 
   const contacto = await obtenerContactoDesdeLead(leadId, kommoId, token);
 
