@@ -255,6 +255,8 @@ app.post("/verificacion", async (req, res) => {
     });
     const lead = leadResponse.data;
 
+    console.log(lead)
+
     const campoMensaje = lead.custom_fields_values?.find(field =>
       field.field_name === "mensajeenviar"
     );
