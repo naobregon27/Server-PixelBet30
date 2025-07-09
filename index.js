@@ -247,19 +247,31 @@ app.post("/verificacion", async (req, res) => {
 
     console.log("📩 Chat ID recibido:", chatId);
 
-    // Hacemos request para traer los mensajes de ese chat
-    const messageResponse = await axios.get(
-      `https://${kommoId}.kommo.com/api/v4/talks/${chatId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
+    try {
+      const messageResponse = await axios.get(
+        `https://${kommoId}.kommo.com/api/v4/chats/${chatId}/messages`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
         }
+      );
+
+      console.log(messageResponse)
+
+      const messages = messageResponse.data?._embedded?.messages || [];
+      if (messages.length > 0) {
+        const lastMessage = messages[messages.length - 1];
+        console.log("📨 Último mensaje recibido:", lastMessage.text);
+      } else {
+        console.log("⚠️ No se encontraron mensajes.");
       }
-    );
 
-    console.log(messageResponse)
+    } catch (error) {
+      console.error("❌ Error al obtener mensajes del chat:", error.response?.data || error.message);
+    }
 
-    
+
   }
 
   if (!leadId) {
