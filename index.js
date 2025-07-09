@@ -229,6 +229,31 @@ app.post("/verificacion", async (req, res) => {
   const body = req.body;
   const { kommoId, token } = req.query;
 
+  if (kommoId === "mctitan") {
+    const talkUpdate = req.body?.talk?.update?.[0];
+
+    if (!talkUpdate) {
+      console.log("⛔ No hay datos de conversación");
+      return res.sendStatus(200);
+    }
+
+    const chatId = talkUpdate.chat_id;
+
+    console.log("📩 Chat ID recibido:", chatId);
+
+    // Hacemos request para traer los mensajes de ese chat
+    const messageResponse = await axios.get(
+      `https://${kommoId}.kommo.com/api/v4/chats/${chatId}/messages`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
+    console.log(messageResponse)
+  }
+
   console.log(JSON.stringify(body, null, 2), "← este es lo que devuelve el body");
   const leadId = req.body?.leads?.add?.[0]?.id;
 
