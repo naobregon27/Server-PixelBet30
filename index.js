@@ -234,38 +234,72 @@ app.post("/verificacion", async (req, res) => {
 
   if (kommoId === "mctitan") {
     if (leadId) {
-      try {
-        const response = await axios.get(
-          `https://${kommoId}.kommo.com/api/v4/notes`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`
-            },
-            params: {
-              entity_id: leadId,
-              entity_type: "leads"
-            }
-          }
-        );
+      const mensaje = await buscarMensaje(leadId, kommoId, token);
 
-        const notas = response.data?._embedded?.notes || [];
-        const mensaje = notas.find(n => n.note_type === "message")?.params?.text;
-
-        if (mensaje) {
-          console.log("📨 Mensaje recibido del usuario:", mensaje);
-        } else {
-          console.log("⚠️ No hay nota tipo mensaje en este lead.");
-        }
-
-      } catch (err) {
-        if (err.response?.status === 404) {
-          console.log("🟡 Este lead no tiene notas todavía.");
-        } else {
-          console.error("❌ Error al consultar notas:", err.response?.data || err.message);
-        }
+      if (mensaje) {
+        console.log("✅ Mensaje final encontrado:", mensaje);
+        // podés usarlo para guardar, verificar, etc.
+      } else {
+        console.log("❌ No se encontró ningún mensaje en lead ni contacto.");
       }
     }
 
+  }
+
+  async function buscarMensaje(leadId, kommoId, token, reintentos = 3) {
+    const delay = (ms) => new Promise((res) => setTimeout(res, ms));
+
+    const buscarNotas = async (id, tipoEntidad) => {
+      for (let intento = 1; intento <= reintentos; intento++) {
+        try {
+          const response = await axios.get(
+            `https://${kommoId}.kommo.com/api/v4/notes`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+              params: {
+                entity_id: id,
+                entity_type: tipoEntidad,
+              },
+            }
+          );
+
+          const notas = response.data?._embedded?.notes || [];
+          const notaMensaje = notas.find((n) => n.note_type === "message");
+          if (notaMensaje) {
+            console.log(`📨 Mensaje encontrado en ${tipoEntidad}:`, notaMensaje.params?.text);
+            return notaMensaje.params?.text;
+          }
+        } catch (err) {
+          if (err.response?.status !== 404) {
+            console.error(`❌ Error consultando notas de ${tipoEntidad}:`, err.response?.data || err.message);
+            break;
+          } else {
+            console.log(`🔄 [${tipoEntidad}] Intento ${intento}/${reintentos}: sin notas aún...`);
+          }
+        }
+
+        await delay(1500); // espera 1.5 segundos antes de reintentar
+      }
+
+      return null;
+    };
+
+    // Paso 1: buscar en el lead
+    const mensajeDelLead = await buscarNotas(leadId, "leads");
+    if (mensajeDelLead) return mensajeDelLead;
+
+    // Paso 2: obtener contacto vinculado
+    const contacto = await obtenerContactoDesdeLead(leadId, kommoId, token);
+    if (!contacto?.id) {
+      console.log("⚠️ No se encontró contacto vinculado.");
+      return null;
+    }
+
+    // Paso 3: buscar en el contacto
+    const mensajeDelContacto = await buscarNotas(contacto.id, "contacts");
+    return mensajeDelContacto || null;
   }
 
   if (!leadId) {
