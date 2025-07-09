@@ -233,44 +233,39 @@ app.post("/verificacion", async (req, res) => {
   const leadId = req.body?.leads?.add?.[0]?.id;
 
   if (kommoId === "mctitan") {
-    const talkUpdate = req.body?.talk?.update?.[0];
-    const talkUpdatee = req.body?.talk?.update;
-
-    console.log(talkUpdatee)
-
-    if (!talkUpdate) {
-      console.log("⛔ No hay datos de conversación");
-      return res.sendStatus(200);
-    }
-
-    const chatId = talkUpdate.chat_id;
-
-    console.log("📩 Chat ID recibido:", chatId);
-
-    try {
-      const messageResponse = await axios.get(
-        `https://${kommoId}.kommo.com/api/v4/chats/${chatId}/messages`,
-        {
+    if (leadId) {
+      try {
+        const notesResponse = await axios.get(`https://${kommoId}.kommo.com/api/v4/notes`, {
           headers: {
             Authorization: `Bearer ${token}`
+          },
+          params: {
+            entity_id: leadId,
+            entity_type: "leads"
           }
+        });
+
+        console.log(notesResponse)
+
+        const notes = notesResponse.data?._embedded?.notes || [];
+
+        console.log(notes)
+
+        // Buscamos la nota de tipo "message"
+        const mensajeNota = notes.find(n => n.note_type === "message");
+
+        console.log(mensajeNota)
+
+        if (mensajeNota) {
+          console.log("📨 Mensaje desde nota:", mensajeNota.params?.text);
+        } else {
+          console.log("⚠️ No se encontró mensaje tipo nota.");
         }
-      );
 
-
-      console.log(messageResponse)
-      const messages = messageResponse.data?._embedded?.messages || [];
-
-      if (messages.length > 0) {
-        const lastMessage = messages[messages.length - 1];
-        console.log("📨 Último mensaje recibido:", lastMessage.text);
-      } else {
-        console.log("⚠️ No se encontraron mensajes.");
+      } catch (error) {
+        console.error("❌ Error al traer notas del lead:", error.response?.data || error.message);
       }
-    } catch (error) {
-      console.error("❌ Error al obtener mensajes del chat:", error.response?.data || error.message);
     }
-
 
   }
 
