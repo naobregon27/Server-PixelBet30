@@ -235,7 +235,7 @@ app.post("/verificacion", async (req, res) => {
   if (kommoId === "mctitan") {
     if (leadId) {
       try {
-        const notesResponse = await axios.get(
+        const response = await axios.get(
           `https://${kommoId}.kommo.com/api/v4/notes`,
           {
             headers: {
@@ -248,16 +248,21 @@ app.post("/verificacion", async (req, res) => {
           }
         );
 
-        const notes = notesResponse.data?._embedded?.notes || [];
-        const mensajeNota = notes.find(n => n.note_type === "message");
+        const notas = response.data?._embedded?.notes || [];
+        const mensaje = notas.find(n => n.note_type === "message")?.params?.text;
 
-        if (mensajeNota) {
-          console.log("📨 Mensaje desde nota:", mensajeNota.params?.text);
+        if (mensaje) {
+          console.log("📨 Mensaje recibido del usuario:", mensaje);
         } else {
-          console.log("⚠️ No se encontró mensaje tipo nota.");
+          console.log("⚠️ No hay nota tipo mensaje en este lead.");
         }
-      } catch (error) {
-        console.error("❌ Error al traer notas del lead:", error.response?.data || error.message);
+
+      } catch (err) {
+        if (err.response?.status === 404) {
+          console.log("🟡 Este lead no tiene notas todavía.");
+        } else {
+          console.error("❌ Error al consultar notas:", err.response?.data || err.message);
+        }
       }
     }
 
