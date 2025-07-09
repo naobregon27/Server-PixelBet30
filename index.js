@@ -235,15 +235,18 @@ app.post("/verificacion", async (req, res) => {
   if (kommoId === "mctitan") {
     if (leadId) {
       try {
-        const notesResponse = await axios.get(`https://${kommoId}.kommo.com/api/v4/notes`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          },
-          params: {
-            entity_id: leadId,
-            entity_type: "leads"
+        const notesResponse = await axios.get(
+          `https://${kommoId}.kommo.com/api/v4/notes`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            },
+            params: {
+              entity_id: leadId,
+              entity_type: "leads"
+            }
           }
-        });
+        );
 
         console.log(notesResponse)
 
