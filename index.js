@@ -229,6 +229,9 @@ app.post("/verificacion", async (req, res) => {
   const body = req.body;
   const { kommoId, token } = req.query;
 
+  console.log(JSON.stringify(body, null, 2), "← este es lo que devuelve el body");
+  const leadId = req.body?.leads?.add?.[0]?.id;
+
   if (kommoId === "mctitan") {
     const talkUpdate = req.body?.talk?.update?.[0];
     const talkUpdatee = req.body?.talk?.update;
@@ -256,9 +259,6 @@ app.post("/verificacion", async (req, res) => {
 
     return console.log(messageResponse)
   }
-
-  console.log(JSON.stringify(body, null, 2), "← este es lo que devuelve el body");
-  const leadId = req.body?.leads?.add?.[0]?.id;
 
   if (!leadId) {
     return res.status(400).json({
