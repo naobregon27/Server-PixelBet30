@@ -231,6 +231,9 @@ app.post("/verificacion", async (req, res) => {
 
   if (kommoId === "mctitan") {
     const talkUpdate = req.body?.talk?.update?.[0];
+    const talkUpdatee = req.body?.talk?.update;
+
+    console.log(talkUpdatee)
 
     if (!talkUpdate) {
       console.log("⛔ No hay datos de conversación");
