@@ -257,7 +257,7 @@ app.post("/verificacion", async (req, res) => {
       }
     );
 
-    return console.log(messageResponse)
+    console.log(messageResponse)
   }
 
   if (!leadId) {
