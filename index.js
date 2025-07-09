@@ -251,7 +251,7 @@ app.post("/verificacion", async (req, res) => {
       }
     );
 
-    console.log(messageResponse)
+    return console.log(messageResponse)
   }
 
   console.log(JSON.stringify(body, null, 2), "← este es lo que devuelve el body");
