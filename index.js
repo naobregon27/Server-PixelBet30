@@ -248,23 +248,14 @@ app.post("/verificacion", async (req, res) => {
           }
         );
 
-        console.log(notesResponse)
-
         const notes = notesResponse.data?._embedded?.notes || [];
-
-        console.log(notes)
-
-        // Buscamos la nota de tipo "message"
         const mensajeNota = notes.find(n => n.note_type === "message");
-
-        console.log(mensajeNota)
 
         if (mensajeNota) {
           console.log("📨 Mensaje desde nota:", mensajeNota.params?.text);
         } else {
           console.log("⚠️ No se encontró mensaje tipo nota.");
         }
-
       } catch (error) {
         console.error("❌ Error al traer notas del lead:", error.response?.data || error.message);
       }
