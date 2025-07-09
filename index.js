@@ -249,7 +249,7 @@ app.post("/verificacion", async (req, res) => {
 
     // Hacemos request para traer los mensajes de ese chat
     const messageResponse = await axios.get(
-      `https://${kommoId}.kommo.com/api/v4/chats/${chatId}/messages`,
+      `https://${kommoId}.kommo.com/api/v4/talks/${chatId}`,
       {
         headers: {
           Authorization: `Bearer ${token}`
