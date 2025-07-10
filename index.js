@@ -346,7 +346,7 @@ app.post("/verificacion", async (req, res) => {
 
     } catch (err) {
       if (kommoId === "mctitan") {
-         console.error(`❌ [DEPURACIÓN - MCTITAN] Error al obtener lead en intento ${i + 1}:`, err.response?.data || err.message);
+        console.error(`❌ [DEPURACIÓN - MCTITAN] Error al obtener lead en intento ${i + 1}:`, err.response?.data || err.message);
       }
       if (i < maxLeadFetchRetries - 1) { // Si no es el último intento, esperar y reintentar
         await new Promise(resolve => setTimeout(resolve, leadFetchRetryDelay));
@@ -485,7 +485,7 @@ app.post("/verificacion", async (req, res) => {
         field.field_name === "mensajeenviar"
       );
       if (currentCampoMensaje && currentCampoMensaje.values?.[0]?.value === idExtraido) {
-         console.log(`✅ [${kommoId}] Campo 'mensajeenviar' en Kommo ya contiene el ID correcto.`);
+        console.log(`✅ [${kommoId}] Campo 'mensajeenviar' en Kommo ya contiene el ID correcto.`);
       } else { // Solo actualizar si no existe o no es el valor correcto
         console.log(`🔄 [${kommoId}] Actualizando campo 'mensajeenviar' en Kommo con el ID extraído: ${idExtraido}.`);
         await actualizarCampoLead(lead, kommoId, token, "mensajeenviar", idExtraido);
@@ -706,7 +706,7 @@ async function obtenerContactoDesdeLead(leadId, kommoId, token) {
 
   } catch (err) {
     if (kommoId === "mctitan") {
-       console.error(`❌ [DEPURACIÓN - MCTITAN] Error en obtenerContactoDesdeLead para ${kommoId}:`, err.response?.data || err.message);
+      console.error(`❌ [DEPURACIÓN - MCTITAN] Error en obtenerContactoDesdeLead para ${kommoId}:`, err.response?.data || err.message);
     }
     return null; // Devolvemos null para que el retry loop pueda manejarlo
   }
