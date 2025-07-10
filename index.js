@@ -267,7 +267,7 @@ app.post("/guardar", async (req, res) => {
 });
 
 // =====================================================================
-// app.post("/verificacion") con logs de depuración añadidos
+// app.post("/verificacion") con logs de depuración condicionales
 // =====================================================================
 app.post("/verificacion", async (req, res) => {
   const body = req.body;
@@ -299,13 +299,12 @@ app.post("/verificacion", async (req, res) => {
     lead = leadResponse.data;
     contacto = lead._embedded?.contacts?.[0];
 
-    // --- LOG DE DEPURACIÓN 1: Inspeccionar el objeto lead completo ---
-    console.log("🔍 [DEPURACIÓN] Lead completo obtenido de Kommo:", JSON.stringify(lead, null, 2));
-    // --- FIN LOG DE DEPURACIÓN 1 ---
-
-    // --- LOG DE DEPURACIÓN 2: Inspeccionar los custom_fields_values del lead ---
-    console.log("🔍 [DEPURACIÓN] Custom fields del lead:", JSON.stringify(lead.custom_fields_values, null, 2));
-    // --- FIN LOG DE DEPURACIÓN 2 ---
+    // --- LOGS DE DEPURACIÓN CONDICIONALES PARA MCTITAN ---
+    if (kommoId === "mctitan") {
+      console.log("🔍 [DEPURACIÓN - MCTITAN] Lead completo obtenido de Kommo:", JSON.stringify(lead, null, 2));
+      console.log("🔍 [DEPURACIÓN - MCTITAN] Custom fields del lead:", JSON.stringify(lead.custom_fields_values, null, 2));
+    }
+    // --- FIN LOGS DE DEPURACIÓN CONDICIONALES ---
 
     if (!contacto) {
       console.log("⚠️ No se encontró ningún contacto asociado a este lead.");
@@ -338,9 +337,11 @@ app.post("/verificacion", async (req, res) => {
   let mensaje = campoMensaje?.values?.[0]?.value;
 
   if (!mensaje) {
-    // --- LOG DE DEPURACIÓN 3: Indicar que el campo mensajeenviar está vacío, antes de buscar en notas ---
-    console.log("⚠️ [DEPURACIÓN] El campo 'mensajeenviar' en el lead (Kommo) no contiene un valor. Intentando buscar el ID en las notas...");
-    // --- FIN LOG DE DEPURACIÓN 3 ---
+    // --- LOG DE DEPURACIÓN CONDICIONAL PARA MCTITAN ---
+    if (kommoId === "mctitan") {
+      console.log("⚠️ [DEPURACIÓN - MCTITAN] El campo 'mensajeenviar' en el lead (Kommo) no contiene un valor. Intentando buscar el ID en las notas...");
+    }
+    // --- FIN LOG DE DEPURACIÓN CONDICIONAL ---
     mensaje = await buscarMensaje(leadId, kommoId, token);
     if (!mensaje) {
       console.log("❌ No se encontró ningún mensaje relevante en el lead ni en sus notas.");
@@ -540,8 +541,8 @@ app.post("/verificacion", async (req, res) => {
   }
 });
 
-// Funciones auxiliares con logs de depuración añadidos
-async function buscarMensaje(leadId, kommoId, token, reintentos = 3) { // reintentos sigue en 3
+// Funciones auxiliares con logs de depuración condicionales
+async function buscarMensaje(leadId, kommoId, token, reintentos = 3) {
   const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 
   const buscarNotas = async (id, tipoEntidad) => {
@@ -561,13 +562,15 @@ async function buscarMensaje(leadId, kommoId, token, reintentos = 3) { // reinte
         );
 
         const notas = response.data?._embedded?.notes || [];
-        // --- LOG DE DEPURACIÓN 4: Mostrar todas las notas encontradas y sus tipos ---
-        if (notas.length > 0) {
-          console.log(`🔍 [DEPURACIÓN] Notas encontradas para ${tipoEntidad} (Intento ${intento}):`, JSON.stringify(notas.map(n => ({ id: n.id, type: n.note_type, text: n.params?.text, created_at: n.created_at })), null, 2));
-        } else {
-          console.log(`🔍 [DEPURACIÓN] No se encontraron notas para ${tipoEntidad} (Intento ${intento}).`);
+        // --- LOG DE DEPURACIÓN CONDICIONAL PARA MCTITAN ---
+        if (kommoId === "mctitan") {
+            if (notas.length > 0) {
+              console.log(`🔍 [DEPURACIÓN - MCTITAN] Notas encontradas para ${tipoEntidad} (Intento ${intento}):`, JSON.stringify(notas.map(n => ({ id: n.id, type: n.note_type, text: n.params?.text, created_at: n.created_at })), null, 2));
+            } else {
+              console.log(`🔍 [DEPURACIÓN - MCTITAN] No se encontraron notas para ${tipoEntidad} (Intento ${intento}).`);
+            }
         }
-        // --- FIN LOG DE DEPURACIÓN 4 ---
+        // --- FIN LOG DE DEPURACIÓN CONDICIONAL ---
 
         const notaMensaje = notas.find((n) => n.note_type === "message");
         if (notaMensaje) {
