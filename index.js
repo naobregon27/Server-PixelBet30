@@ -50,11 +50,21 @@ const isValidIP = (ip) => {
   return regex.test(ip);
 };
 
-// =====================================================================
-// Función auxiliar `actualizarCampoLead` (Mantenida exactamente como en tu código)
-// =====================================================================
 async function actualizarCampoLead(lead, kommoId, token, fieldName, fieldValue) {
-  const url = `https://${kommoId}.kommo.com/api/v4/leads/${lead.id}`;
+  // Extraemos el api_domain del token para construir la URL correctamente
+  let apiDomain = `${kommoId}.kommo.com`; // Fallback default
+  try {
+    const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+    if (decodedToken.api_domain) {
+      apiDomain = decodedToken.api_domain;
+    } else if (decodedToken.base_domain) { // Algunas versiones pueden tener base_domain
+      apiDomain = decodedToken.base_domain;
+    }
+  } catch (e) {
+    console.error("❌ Error decodificando token en actualizarCampoLead para obtener api_domain:", e.message);
+  }
+
+  const url = `https://${apiDomain}/api/v4/leads/${lead.id}`;
 
   try {
     const customFields = lead.custom_fields_values || [];
@@ -63,7 +73,6 @@ async function actualizarCampoLead(lead, kommoId, token, fieldName, fieldValue) 
     if (targetField) {
       targetField.values = [{ value: fieldValue }];
     } else {
-      // IMPORTANTE: Usa el ID del campo 'mensajeenviar' de tu Kommo para 'mctitan'
       targetField = {
         field_id: 1067428, // <-- ¡ASEGÚRATE DE QUE ESTE ID SEA EL CORRECTO PARA Mctitan!
         field_name: fieldName,
@@ -98,12 +107,10 @@ app.post("/guardar", async (req, res) => {
 
     const { kommoId } = req.query;
 
-    // 1. Verificación de campos obligatorios
     if (!id || !token || !pixel || !subdominio || !dominio || !ip) {
       return res.status(400).json({ error: "Faltan campos obligatorios" });
     }
 
-    // 2. Validación de tipos y formatos
     if (!/^\d+$/.test(id)) {
       return res.status(400).json({ error: "ID debe ser numérico" });
     }
@@ -113,7 +120,6 @@ app.post("/guardar", async (req, res) => {
     }
 
     let existente;
-    // 3. Evitar duplicados si el ID ya existe
     if (kommoId === "cajaadmi01") {
       existente = await RegistroMacleyn.findOne({ id });
     } else if (kommoId === "luchito4637") {
@@ -125,7 +131,7 @@ app.post("/guardar", async (req, res) => {
     } else if (kommoId === "blackpanther3") {
       existente = await RegistroBetthree.findOne({ id });
     } else if (kommoId === "blackpanther4") {
-      existente = await RegistroBetFour.findOne({ id });
+      existente = await RegistroBetFour({ id });
     } else if (kommoId === "Ganamosnet") {
       existente = await RegistroGanamosnet.findOne({ id });
     } else if (kommoId === "Cash365") {
@@ -267,11 +273,12 @@ app.post("/guardar", async (req, res) => {
 });
 
 // =====================================================================
-// app.post("/verificacion") con logs de depuración condicionales
+// app.post("/verificacion") con estrategia de reintentos para fetch del lead
+// y logs de depuración condicionales
 // =====================================================================
 app.post("/verificacion", async (req, res) => {
   const body = req.body;
-  const { kommoId, token } = req.query;
+  const { kommoId, token } = req.query; // 'token' aquí es el token de Kommo
 
   console.log(JSON.stringify(body, null, 2), "← este es lo que devuelve el body");
   const leadId = req.body?.leads?.add?.[0]?.id || req.body?.leads?.update?.[0]?.id;
@@ -289,60 +296,103 @@ app.post("/verificacion", async (req, res) => {
 
   let contacto = null;
   let lead = null;
+  const maxLeadFetchRetries = 10; // Mantenemos 10 reintentos para obtener el lead
+  const leadFetchRetryDelay = 2000; // 2 segundos de delay entre reintentos del lead
 
+  // Reintentar obtener el lead con la API de dominio correcta
+  let apiDomain = `${kommoId}.kommo.com`; // Fallback default
   try {
-    const leadResponse = await axios.get(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}?with=contacts`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    lead = leadResponse.data;
-    contacto = lead._embedded?.contacts?.[0];
-
-    // --- LOGS DE DEPURACIÓN CONDICIONALES PARA MCTITAN ---
-    if (kommoId === "mctitan") {
-      console.log("🔍 [DEPURACIÓN - MCTITAN] Lead completo obtenido de Kommo:", JSON.stringify(lead, null, 2));
-      console.log("🔍 [DEPURACIÓN - MCTITAN] Custom fields del lead:", JSON.stringify(lead.custom_fields_values, null, 2));
+    const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+    if (decodedToken.api_domain) {
+      apiDomain = decodedToken.api_domain;
+    } else if (decodedToken.base_domain) {
+      apiDomain = decodedToken.base_domain;
     }
-    // --- FIN LOGS DE DEPURACIÓN CONDICIONALES ---
+  } catch (e) {
+    console.error("❌ Error decodificando token en /verificacion para obtener api_domain:", e.message);
+    // Si no podemos decodificar el token para obtener el api_domain, podríamos usar el kommoId.kommo.com como fallback
+    // o retornar un error si consideramos que el token es inválido aquí.
+    // Por ahora, el apiDomain se mantendrá como kommoId.kommo.com o lo que se pudo decodificar.
+  }
 
-    if (!contacto) {
-      console.log("⚠️ No se encontró ningún contacto asociado a este lead.");
-      return res.status(404).json({
-        error: "Contacto no encontrado",
-        detalles: {
-          tipo: 'contacto_no_encontrado',
-          mensaje: "No se encontró un contacto vinculado al lead especificado.",
-          timestamp: new Date()
+  for (let i = 0; i < maxLeadFetchRetries; i++) {
+    try {
+      const leadResponse = await axios.get(`https://${apiDomain}/api/v4/leads/${leadId}?with=contacts`, { // Usamos apiDomain aquí
+        headers: {
+          'Authorization': `Bearer ${token}`
         }
       });
-    }
-    console.log("🧾 ID del contacto:", contacto.id);
+      lead = leadResponse.data;
+      contacto = lead._embedded?.contacts?.[0];
 
-  } catch (err) {
-    console.error("❌ Error al obtener contacto desde lead o lead data:", err.response?.data || err.message);
-    return res.status(500).json({
-      error: "Error interno al obtener datos de Kommo",
+      // --- LOGS DE DEPURACIÓN CONDICIONALES PARA MCTITAN ---
+      if (kommoId === "mctitan") {
+        console.log(`🔍 [DEPURACIÓN - MCTITAN] Intento ${i + 1}/${maxLeadFetchRetries} de obtener Lead. Custom fields:`, JSON.stringify(lead.custom_fields_values, null, 2));
+      }
+      // --- FIN LOGS DE DEPURACIÓN CONDICIONALES ---
+
+      // Solo necesitamos que el lead y el contacto no sean nulos para continuar el proceso
+      if (lead !== null && contacto !== null) {
+        if (kommoId === "mctitan") {
+          console.log(`✅ [DEPURACIÓN - MCTITAN] Lead y contacto obtenidos en el intento ${i + 1}.`);
+        }
+        break; // Salir del bucle si los datos básicos están presentes
+      } else {
+        if (kommoId === "mctitan") {
+          console.log(`⚠️ [DEPURACIÓN - MCTITAN] Lead o contacto aún nulos en el intento ${i + 1}. Reintentando obtener lead...`);
+        }
+        await new Promise(resolve => setTimeout(resolve, leadFetchRetryDelay));
+      }
+
+    } catch (err) {
+      if (kommoId === "mctitan") {
+         console.error(`❌ [DEPURACIÓN - MCTITAN] Error al obtener lead en intento ${i + 1}:`, err.response?.data || err.message);
+      }
+      if (i < maxLeadFetchRetries - 1) { // Si no es el último intento, esperar y reintentar
+        await new Promise(resolve => setTimeout(resolve, leadFetchRetryDelay));
+      } else { // Si es el último intento y falló definitivamente
+        console.error("❌ Error definitivo al obtener contacto desde lead o lead data después de reintentos:", err.response?.data || err.message);
+        return res.status(500).json({
+          error: "Error interno al obtener datos de Kommo (Máx. reintentos de lead fetch)",
+          detalles: {
+            tipo: 'kommo_api_error_max_retries',
+            mensaje: err.response?.data?.detail || err.message,
+            timestamp: new Date()
+          }
+        });
+      }
+    }
+  }
+
+  // Si después de los reintentos, el lead o contacto sigue siendo null, es un error fatal.
+  if (lead === null || contacto === null) {
+    if (kommoId === "mctitan") {
+      console.log("❌ [DEPURACIÓN - MCTITAN] No se pudo obtener el lead o contacto después de todos los reintentos.");
+    }
+    return res.status(404).json({
+      error: "Lead o Contacto no encontrado después de reintentos",
       detalles: {
-        tipo: 'kommo_api_error',
-        mensaje: err.response?.data?.detail || err.message,
+        tipo: 'lead_contact_unavailable_after_retries',
+        mensaje: "El lead o su contacto vinculado no estaban disponibles tras los reintentos.",
         timestamp: new Date()
       }
     });
   }
 
-  const campoMensaje = lead.custom_fields_values?.find(field =>
+
+  // --- Estrategia de obtener mensaje: primero campo 'mensajeenviar' (si existe), luego notas ---
+  const campoMensaje = lead.custom_fields_values?.find(field => // lead.custom_fields_values todavía podría ser null aquí
     field.field_name === "mensajeenviar"
   );
   let mensaje = campoMensaje?.values?.[0]?.value;
 
+  // Si el mensaje NO se encontró en el campo 'mensajeenviar', intentar buscar en notas.
+  // Esto se hará incluso si custom_fields_values es null, ya que campoMensaje?.values será undefined.
   if (!mensaje) {
-    // --- LOG DE DEPURACIÓN CONDICIONAL PARA MCTITAN ---
     if (kommoId === "mctitan") {
-      console.log("⚠️ [DEPURACIÓN - MCTITAN] El campo 'mensajeenviar' en el lead (Kommo) no contiene un valor. Intentando buscar el ID en las notas...");
+      console.log("⚠️ [DEPURACIÓN - MCTITAN] El campo 'mensajeenviar' en el lead (Kommo) no contiene un valor o custom_fields_values es nulo. Intentando buscar el ID en las notas...");
     }
-    // --- FIN LOG DE DEPURACIÓN CONDICIONAL ---
-    mensaje = await buscarMensaje(leadId, kommoId, token);
+    mensaje = await buscarMensaje(leadId, kommoId, token); // Aquí se llama a buscarMensaje con sus propios reintentos
     if (!mensaje) {
       console.log("❌ No se encontró ningún mensaje relevante en el lead ni en sus notas.");
       return res.status(404).json({
@@ -434,11 +484,11 @@ app.post("/verificacion", async (req, res) => {
       const currentCampoMensaje = lead.custom_fields_values?.find(field =>
         field.field_name === "mensajeenviar"
       );
-      if (!currentCampoMensaje || currentCampoMensaje.values?.[0]?.value !== idExtraido) {
+      if (currentCampoMensaje && currentCampoMensaje.values?.[0]?.value === idExtraido) {
+         console.log(`✅ [${kommoId}] Campo 'mensajeenviar' en Kommo ya contiene el ID correcto.`);
+      } else { // Solo actualizar si no existe o no es el valor correcto
         console.log(`🔄 [${kommoId}] Actualizando campo 'mensajeenviar' en Kommo con el ID extraído: ${idExtraido}.`);
         await actualizarCampoLead(lead, kommoId, token, "mensajeenviar", idExtraido);
-      } else {
-        console.log(`✅ [${kommoId}] Campo 'mensajeenviar' en Kommo ya contiene el ID correcto.`);
       }
     }
 
@@ -463,7 +513,8 @@ app.post("/verificacion", async (req, res) => {
       registro.verificationStatus = 'verificado';
       await registro.save();
 
-      const pixelEndpointUrl = `https://graph.facebook.com/v18.0/${registro.pixel}/events?access_token=${registro.token}`;
+      const facebookAccessToken = process.env.FACEBOOK_PIXEL_ACCESS_TOKEN || "TU_FACEBOOK_PIXEL_ACCESS_TOKEN_REAL_AQUI";
+      const pixelEndpointUrl = `https://graph.facebook.com/v18.0/${registro.pixel}/events?access_token=${facebookAccessToken}`; 
 
       const eventData = {
         event_name: "Lead",
@@ -541,15 +592,27 @@ app.post("/verificacion", async (req, res) => {
   }
 });
 
-// Funciones auxiliares con logs de depuración condicionales
-async function buscarMensaje(leadId, kommoId, token, reintentos = 3) {
+async function buscarMensaje(leadId, kommoId, token, reintentos = 10) { // Aumentar reintentos para notas a 10
   const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 
   const buscarNotas = async (id, tipoEntidad) => {
     for (let intento = 1; intento <= reintentos; intento++) {
       try {
+        // Extraemos el api_domain del token JWT para mayor precisión
+        let apiDomain = `${kommoId}.kommo.com`; // Fallback default
+        try {
+          const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+          if (decodedToken.api_domain) {
+            apiDomain = decodedToken.api_domain;
+          } else if (decodedToken.base_domain) {
+            apiDomain = decodedToken.base_domain;
+          }
+        } catch (e) {
+          console.error("❌ Error decodificando token en buscarNotas para obtener api_domain:", e.message);
+        }
+
         const response = await axios.get(
-          `https://${kommoId}.kommo.com/api/v4/notes`,
+          `https://${apiDomain}/api/v4/notes`, // Usamos apiDomain aquí
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -562,7 +625,6 @@ async function buscarMensaje(leadId, kommoId, token, reintentos = 3) {
         );
 
         const notas = response.data?._embedded?.notes || [];
-        // --- LOG DE DEPURACIÓN CONDICIONAL PARA MCTITAN ---
         if (kommoId === "mctitan") {
             if (notas.length > 0) {
               console.log(`🔍 [DEPURACIÓN - MCTITAN] Notas encontradas para ${tipoEntidad} (Intento ${intento}):`, JSON.stringify(notas.map(n => ({ id: n.id, type: n.note_type, text: n.params?.text, created_at: n.created_at })), null, 2));
@@ -570,7 +632,6 @@ async function buscarMensaje(leadId, kommoId, token, reintentos = 3) {
               console.log(`🔍 [DEPURACIÓN - MCTITAN] No se encontraron notas para ${tipoEntidad} (Intento ${intento}).`);
             }
         }
-        // --- FIN LOG DE DEPURACIÓN CONDICIONAL ---
 
         const notaMensaje = notas.find((n) => n.note_type === "message");
         if (notaMensaje) {
@@ -586,30 +647,43 @@ async function buscarMensaje(leadId, kommoId, token, reintentos = 3) {
         }
       }
 
-      await delay(1500); // espera 1.5 segundos antes de reintentar (delay original)
+      await delay(3000); // espera 3 segundos antes de reintentar
     }
 
     return null;
   };
 
-  // Paso 1: buscar en el lead
   const mensajeDelLead = await buscarNotas(leadId, "leads");
   if (mensajeDelLead) return mensajeDelLead;
 
-  // Paso 2: obtener contacto vinculado
   const contacto = await obtenerContactoDesdeLead(leadId, kommoId, token);
   if (!contacto?.id) {
     console.log("⚠️ No se encontró contacto vinculado.");
     return null;
   }
 
-  // Paso 3: buscar en el contacto
   const mensajeDelContacto = await buscarNotas(contacto.id, "contacts");
   return mensajeDelContacto || null;
 }
 
 async function obtenerContactoDesdeLead(leadId, kommoId, token) {
-  const url = `https://${kommoId}.kommo.com/api/v4/leads/${leadId}?with=contacts`;
+  // Extraemos el api_domain del token JWT para mayor precisión
+  let apiDomain = `${kommoId}.kommo.com`; // Fallback default
+  try {
+    const decodedToken = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+    if (decodedToken.api_domain) {
+      apiDomain = decodedToken.api_domain;
+    } else if (decodedToken.base_domain) { // Algunas versiones pueden tener base_domain
+      apiDomain = decodedToken.base_domain;
+    }
+  } catch (e) {
+    console.error("❌ Error decodificando token para obtener api_domain:", e.message);
+  }
+
+  const url = `https://${apiDomain}/api/v4/leads/${leadId}?with=contacts`; // Usamos apiDomain aquí
+  if (kommoId === "mctitan") {
+      console.log(`🔍 [DEPURACIÓN - MCTITAN] URL de Kommo API para Lead: ${url}`);
+  }
 
   try {
     const response = await axios.get(url, {
@@ -620,7 +694,7 @@ async function obtenerContactoDesdeLead(leadId, kommoId, token) {
     });
 
     const lead = response.data;
-    const contacto = lead._embedded?.contacts?.[0]; // primer contacto vinculado
+    const contacto = lead._embedded?.contacts?.[0];
 
     if (!contacto) {
       console.log("⚠️ No se encontró ningún contacto asociado a este lead");
@@ -631,8 +705,10 @@ async function obtenerContactoDesdeLead(leadId, kommoId, token) {
     return contacto;
 
   } catch (err) {
-    console.error("❌ Error al obtener contacto desde lead:", err.response?.data || err.message);
-    return null;
+    if (kommoId === "mctitan") {
+       console.error(`❌ [DEPURACIÓN - MCTITAN] Error en obtenerContactoDesdeLead para ${kommoId}:`, err.response?.data || err.message);
+    }
+    return null; // Devolvemos null para que el retry loop pueda manejarlo
   }
 }
 
