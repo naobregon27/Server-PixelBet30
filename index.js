@@ -10,6 +10,8 @@ const RegistroBetFour = require("./models/RegistroBetFour");
 const RegistroGanamosnet = require("./models/RegistroGanamosnet");
 const RegistroCash365 = require("./models/RegistroCash365");
 const Registromctitan = require("./models/Registromctitan");
+const Registrodubai = require("./models/Registrodubai");
+const Registromiami = require("./models/Registromiami");
 const axios = require('axios');
 const cookieParser = require("cookie-parser");
 
@@ -91,6 +93,10 @@ app.post("/guardar", async (req, res) => {
       existente = await RegistroCash365.findOne({ id });
     } else if (kommoId === "mctitan") {
       existente = await Registromctitan.findOne({ id });
+    } else if (kommoId === "dubai") {
+      existente = await Registrodubai.findOne({ id });
+    } else if (kommoId === "miamifull24") {
+      existente = await Registromiami.findOne({ id });
     }
 
     if (existente) {
@@ -205,6 +211,32 @@ app.post("/guardar", async (req, res) => {
       await nuevoRegistro.save();
     } else if (kommoId === "mctitan") {
       nuevoRegistro = new Registromctitan({
+        id,
+        token,
+        pixel,
+        subdominio,
+        dominio,
+        ip,
+        fbclid,
+        mensaje,
+      });
+
+      await nuevoRegistro.save();
+    } else if (kommoId === "dubai") {
+      nuevoRegistro = new Registrodubai({
+        id,
+        token,
+        pixel,
+        subdominio,
+        dominio,
+        ip,
+        fbclid,
+        mensaje,
+      });
+
+      await nuevoRegistro.save();
+    } else if (kommoId === "miamifull24") {
+      nuevoRegistro = new Registromiami({
         id,
         token,
         pixel,
@@ -356,6 +388,10 @@ app.post("/verificacion", async (req, res) => {
         Modelo = RegistroCash365;
       } else if (kommoId === "mctitan") {
         Modelo = Registromctitan;
+      } else if (kommoId === "dubai") {
+        Modelo = Registrodubai;
+      } else if (kommoId === "miamifull24") {
+        Modelo = Registromiami;
       }
 
       try {
