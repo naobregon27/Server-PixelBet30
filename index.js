@@ -93,7 +93,7 @@ app.post("/guardar", async (req, res) => {
       existente = await RegistroCash365.findOne({ id });
     } else if (kommoId === "mctitan") {
       existente = await Registromctitan.findOne({ id });
-    } else if (kommoId === "dubai") {
+    } else if (kommoId === "dubai2025fichgmailcom") {
       existente = await Registrodubai.findOne({ id });
     } else if (kommoId === "miamifull24") {
       existente = await Registromiami.findOne({ id });
@@ -222,7 +222,7 @@ app.post("/guardar", async (req, res) => {
       });
 
       await nuevoRegistro.save();
-    } else if (kommoId === "dubai") {
+    } else if (kommoId === "dubai2025fichgmailcom") {
       nuevoRegistro = new Registrodubai({
         id,
         token,
@@ -408,7 +408,7 @@ app.post("/verificacion", async (req, res) => {
         Modelo = RegistroCash365;
       } else if (kommoId === "mctitan") {
         Modelo = Registromctitan;
-      } else if (kommoId === "dubai") {
+      } else if (kommoId === "dubai2025fichgmailcom") {
         Modelo = Registrodubai;
       } else if (kommoId === "miamifull24") { //miami
         Modelo = Registromiami;
