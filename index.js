@@ -390,7 +390,7 @@ app.post("/verificacion", async (req, res) => {
         Modelo = Registromctitan;
       } else if (kommoId === "dubai") {
         Modelo = Registrodubai;
-      } else if (kommoId === "miamifull24") {
+      } else if (kommoId === "miamifull24") {  //miami
         Modelo = Registromiami;
       }
 
