@@ -152,7 +152,7 @@ app.post("/guardar", async (req, res) => {
         subdominio,
         dominio,
         ip,
-        fbclid,
+        mbclid,
         mensaje,
       });
 
@@ -261,8 +261,17 @@ app.post("/verificacion", async (req, res) => {
   const body = req.body;
   const { kommoId, token } = req.query;
 
+  // --- LOGS DE DEPURACIÓN INICIANDO LA RUTA ---
+  console.log("🐛 DEBUG: kommoId recibido:", kommoId);
+  console.log("🐛 DEBUG: token recibido:", token);
+  // ------------------------------------------
+
   console.log(JSON.stringify(body, null, 2), "← este es lo que devuelve el body");
   const leadId = req.body?.leads?.add?.[0]?.id;
+
+  // --- LOG DE DEPURACIÓN PARA leadId ---
+  console.log("🐛 DEBUG: leadId extraído del webhook:", leadId);
+  // ------------------------------------
 
   if (kommoId === "mctitan") {
     if (leadId) {
@@ -278,6 +287,8 @@ app.post("/verificacion", async (req, res) => {
 
   }
 
+  // NOTE: La función buscarMensaje está definida aquí, pero solo es llamada en el bloque de mctitan.
+  // La lógica para otras cuentas Kommo (como miami) va por el path de obtenerContactoDesdeLead y la lectura de custom_fields_values.
   async function buscarMensaje(leadId, kommoId, token, reintentos = 3) {
     const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 
@@ -350,17 +361,26 @@ app.post("/verificacion", async (req, res) => {
   if (contacto) {
     console.log("🧾 ID del contacto:", contacto.id);
 
-    const leadResponse = await axios.get(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}`, {
+    const leadResponse = await axios.get(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}?with=custom_fields_values`, { // Añadido ?with=custom_fields_values
       headers: {
         'Authorization': `Bearer ${token}`
       }
     });
     const lead = leadResponse.data;
 
+    // --- LOG DE DEPURACIÓN PARA el objeto lead completo ---
+    console.log("🐛 DEBUG: Objeto lead COMPLETO devuelto por Kommo API:", JSON.stringify(lead, null, 2));
+    // ----------------------------------------------------
+
     const campoMensaje = lead.custom_fields_values?.find(field =>
       field.field_name === "mensajeenviar"
     );
     const mensaje = campoMensaje?.values?.[0]?.value;
+
+    // --- LOGS DE DEPURACIÓN PARA campoMensaje y mensaje ---
+    console.log("🐛 DEBUG: Valor de 'campoMensaje' encontrado:", JSON.stringify(campoMensaje, null, 2));
+    console.log("🐛 DEBUG: Valor final de 'mensaje' antes de regex:", mensaje);
+    // ---------------------------------------------------
 
     console.log("📝 Mensaje guardado en el lead (mensajeenviar):", mensaje);
 
@@ -388,9 +408,9 @@ app.post("/verificacion", async (req, res) => {
         Modelo = RegistroCash365;
       } else if (kommoId === "mctitan") {
         Modelo = Registromctitan;
-      } else if (kommoId === "dubai") { 
+      } else if (kommoId === "dubai") {
         Modelo = Registrodubai;
-      } else if (kommoId === "miamifull24") {  //miami
+      } else if (kommoId === "miamifull24") { //miami
         Modelo = Registromiami;
       }
 
@@ -542,6 +562,7 @@ app.post("/verificacion", async (req, res) => {
 });
 
 async function obtenerContactoDesdeLead(leadId, kommoId, token) {
+  // Aseguramos que se solicite custom_fields_values para el contacto si es necesario
   const url = `https://${kommoId}.kommo.com/api/v4/leads/${leadId}?with=contacts`;
 
   try {
