@@ -388,7 +388,7 @@ app.post("/verificacion", async (req, res) => {
         Modelo = RegistroCash365;
       } else if (kommoId === "mctitan") {
         Modelo = Registromctitan;
-      } else if (kommoId === "dubai") {
+      } else if (kommoId === "dubai") { 
         Modelo = Registrodubai;
       } else if (kommoId === "miamifull24") {  //miami
         Modelo = Registromiami;
