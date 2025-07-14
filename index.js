@@ -152,7 +152,7 @@ app.post("/guardar", async (req, res) => {
         subdominio,
         dominio,
         ip,
-        fdclid,
+        fbclid,
         mensaje,
       });
 
