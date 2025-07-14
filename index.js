@@ -18,7 +18,7 @@ const cookieParser = require("cookie-parser");
 const app = express();
 const PORT = 3000;
 
-app.use(bodyParser.json());
+app.use(bodyParser.json());                  
 app.use(require("cors")());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json()); // Asegura que req.body funcione correctamente
@@ -152,7 +152,7 @@ app.post("/guardar", async (req, res) => {
         subdominio,
         dominio,
         ip,
-        mbclid,
+        fdclid,
         mensaje,
       });
 
