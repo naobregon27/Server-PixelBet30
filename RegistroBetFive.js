@@ -48,4 +48,4 @@ const registroSchema = new mongoose.Schema({
     timestamps: true
 });
 
-module.exports = mongoose.model('RegistroBetFive', registroSchema); 
+module.exports = mongoose.model('RegistroBetfive', registroSchema); 

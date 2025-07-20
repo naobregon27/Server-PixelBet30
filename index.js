@@ -90,7 +90,7 @@ app.post("/guardar", async (req, res) => {
     } else if (kommoId === "blackpanther4") {
       existente = await RegistroBetFour.findOne({ id });
     } else if (kommoId === "publimac") {
-      existente = await RegistroBetFive.findOne({ id });
+      existente = await RegistroBetfive.findOne({ id });
     } else if (kommoId === "Ganamosnet") {
       existente = await RegistroGanamosnet.findOne({ id });
     } else if (kommoId === "Cash365") {
@@ -188,7 +188,7 @@ app.post("/guardar", async (req, res) => {
 
       await nuevoRegistro.save();
     } else if (kommoId === "publimac") {
-      nuevoRegistro = new RegistroBetFive({
+      nuevoRegistro = new RegistroBetfive({
         id,
         token,
         pixel,
@@ -424,7 +424,7 @@ app.post("/verificacion", async (req, res) => {
       } else if (kommoId === "blackpanther4") {
         Modelo = RegistroBetFour;
       } else if (kommoId === "publimac") {
-        Modelo = RegistroBetFive;
+        Modelo = RegistroBetfive;
       } else if (kommoId === "Ganamosnet") {
         Modelo = RegistroGanamosnet;
       } else if (kommoId === "Cash365") {
