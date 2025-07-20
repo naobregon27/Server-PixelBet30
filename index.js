@@ -248,9 +248,13 @@ app.post("/guardar", async (req, res) => {
       });
 
       await nuevoRegistro.save();
+    } else {
+      return res.status(400).json({ error: "ID de Kommo no reconocido" });
     }
 
     res.status(201).json({ mensaje: "Datos guardados con éxito" });
+    console.log(`✅ Registro guardado exitosamente en ${kommoId} :`, nuevoRegistro);
+    
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Error interno al guardar los datos" });
