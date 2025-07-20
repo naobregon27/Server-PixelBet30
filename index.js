@@ -7,11 +7,13 @@ const RegistroBetone = require("./models/RegistroBetone");
 const RegistroBettwo = require("./models/RegistroBettwo");
 const RegistroBetthree = require("./models/RegistroBetthree");
 const RegistroBetFour = require("./models/RegistroBetFour");
+const RegistroBetFive = require("./models/RegistroFive");
 const RegistroGanamosnet = require("./models/RegistroGanamosnet");
 const RegistroCash365 = require("./models/RegistroCash365");
 const Registromctitan = require("./models/Registromctitan");
 const Registrodubai = require("./models/Registrodubai");
 const Registromiami = require("./models/Registromiami");
+
 const axios = require('axios');
 const cookieParser = require("cookie-parser");
 
@@ -87,6 +89,8 @@ app.post("/guardar", async (req, res) => {
       existente = await RegistroBetthree.findOne({ id });
     } else if (kommoId === "blackpanther4") {
       existente = await RegistroBetFour.findOne({ id });
+    } else if (kommoId === "publimac") {
+      existente = await RegistroBetFive.findOne({ id });
     } else if (kommoId === "Ganamosnet") {
       existente = await RegistroGanamosnet.findOne({ id });
     } else if (kommoId === "Cash365") {
@@ -172,6 +176,19 @@ app.post("/guardar", async (req, res) => {
       await nuevoRegistro.save();
     } else if (kommoId === "blackpanther4") {
       nuevoRegistro = new RegistroBetFour({
+        id,
+        token,
+        pixel,
+        subdominio,
+        dominio,
+        ip,
+        fbclid,
+        mensaje,
+      });
+
+      await nuevoRegistro.save();
+    } else if (kommoId === "publimac") {
+      nuevoRegistro = new RegistroBetFive({
         id,
         token,
         pixel,
@@ -406,6 +423,8 @@ app.post("/verificacion", async (req, res) => {
         Modelo = RegistroBetthree;
       } else if (kommoId === "blackpanther4") {
         Modelo = RegistroBetFour;
+      } else if (kommoId === "publimac") {
+        Modelo = RegistroBetFive;
       } else if (kommoId === "Ganamosnet") {
         Modelo = RegistroGanamosnet;
       } else if (kommoId === "Cash365") {
