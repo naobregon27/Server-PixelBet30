@@ -13,6 +13,7 @@ const RegistroCash365 = require("./models/RegistroCash365");
 const Registromctitan = require("./models/Registromctitan");
 const Registrodubai = require("./models/Registrodubai");
 const Registromiami = require("./models/Registromiami");
+const RegistroPanteraarg1995 = require("./models/RegistroPanteraarg1995");
 
 const axios = require('axios');
 const cookieParser = require("cookie-parser");
@@ -101,6 +102,8 @@ app.post("/guardar", async (req, res) => {
       existente = await Registrodubai.findOne({ id });
     } else if (kommoId === "miamifull24") {
       existente = await Registromiami.findOne({ id });
+    } else if (kommoId === "panteraarg1995") {
+      existente = await RegistroPanteraarg1995.findOne({ id });
     }
 
     if (existente) {
@@ -264,6 +267,18 @@ app.post("/guardar", async (req, res) => {
         mensaje,
       });
 
+      await nuevoRegistro.save();
+    } else if (kommoId === "panteraarg1995") {
+      nuevoRegistro = new RegistroPanteraarg1995({
+        id,
+        token,
+        pixel,
+        subdominio,
+        dominio,
+        ip,
+        fbclid,
+        mensaje,
+      });
       await nuevoRegistro.save();
     } else {
       return res.status(400).json({ error: "ID de Kommo no reconocido" });
@@ -435,6 +450,8 @@ app.post("/verificacion", async (req, res) => {
         Modelo = Registrodubai;
       } else if (kommoId === "miamifull24") { //miami
         Modelo = Registromiami;
+      } else if (kommoId === "panteraarg1995") {
+        Modelo = RegistroPanteraarg1995;
       }
 
       try {
