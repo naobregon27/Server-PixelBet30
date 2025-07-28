@@ -66,4 +66,4 @@ const registroSchema = new mongoose.Schema({
     }
 });
 
-module.exports = mongoose.model('RegistroCash365', registroSchema); 
+module.exports = mongoose.model('RegistroWoncashcorp', registroSchema); 
