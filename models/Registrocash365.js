@@ -66,4 +66,4 @@ const registroSchema = new mongoose.Schema({
     }
 });
 
-module.exports = mongoose.model('Registrowoncoin', registroSchema); 
+module.exports = mongoose.model('Registrocash365', registroSchema); 

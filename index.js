@@ -8,12 +8,11 @@ const RegistroBettwo = require("./models/RegistroBettwo");
 const RegistroBetthree = require("./models/RegistroBetthree");
 const RegistroBetFour = require("./models/RegistroBetFour");
 const RegistroBetfive = require("./models/RegistroBetfive");
-const RegistroGanamosnet = require("./models/RegistroGanamosnet");
+const Registrocash365 = require("./models/Registrocash365");
 const RegistroWoncashcorp = require("./models/RegistroWoncashcorp");
 const Registromctitan = require("./models/Registromctitan");
 const Registrodubai = require("./models/Registrodubai");
 const Registromiami = require("./models/Registromiami");
-const Registrowoncoin = require("./models/Registrowoncoin");
 const RegistroPanteraarg1995 = require("./models/RegistroPanteraarg1995");
 
 const axios = require('axios');
@@ -94,7 +93,7 @@ app.post("/guardar", async (req, res) => {
     } else if (kommoId === "publimac") {
       existente = await RegistroBetfive.findOne({ id });
     } else if (kommoId === "Ganamosnet") {
-      existente = await RegistroGanamosnet.findOne({ id });
+      existente = await Registrocash365.findOne({ id });
     } else if (kommoId === "woncashcorp") {
       existente = await RegistroWoncashcorp.findOne({ id });
     } else if (kommoId === "mctitan") {
@@ -105,8 +104,6 @@ app.post("/guardar", async (req, res) => {
       existente = await Registromiami.findOne({ id });
     } else if (kommoId === "panteraarg1995") {
       existente = await RegistroPanteraarg1995.findOne({ id });
-    } else if (kommoId === "woncoinbots2") {
-      existente = await Registrowoncoin.findOne({ id });
     }
 
     if (existente) {
@@ -206,8 +203,8 @@ app.post("/guardar", async (req, res) => {
       });
 
       await nuevoRegistro.save();
-    } else if (kommoId === "Ganamosnet") {
-      nuevoRegistro = new RegistroGanamosnet({
+    } else if (kommoId === "woncoinbots2") {
+      nuevoRegistro = new Registrocash365({
         id,
         token,
         pixel,
@@ -260,19 +257,6 @@ app.post("/guardar", async (req, res) => {
       await nuevoRegistro.save();
     } else if (kommoId === "miamifull24") {
       nuevoRegistro = new Registromiami({
-        id,
-        token,
-        pixel,
-        subdominio,
-        dominio,
-        ip,
-        fbclid,
-        mensaje,
-      });
-
-      await nuevoRegistro.save();
-    } else if (kommoId === "woncoinbots2") {
-      nuevoRegistro = new Registrowoncoin({
         id,
         token,
         pixel,
@@ -456,8 +440,8 @@ app.post("/verificacion", async (req, res) => {
         Modelo = RegistroBetFour;
       } else if (kommoId === "publimac") {
         Modelo = RegistroBetfive;
-      } else if (kommoId === "Ganamosnet") {
-        Modelo = RegistroGanamosnet;
+      } else if (kommoId === "woncoinbots2") {
+        Modelo = Registrocash365;
       } else if (kommoId === "woncashcorp") {
         Modelo = RegistroWoncashcorp;
       } else if (kommoId === "mctitan") {
@@ -468,8 +452,6 @@ app.post("/verificacion", async (req, res) => {
         Modelo = Registromiami;
       } else if (kommoId === "panteraarg1995") {
         Modelo = RegistroPanteraarg1995;
-      } else if (kommoId === "woncoinbots2") {
-        Modelo = Registrowoncoin;
       }
 
       try {
