@@ -14,6 +14,7 @@ const Registromctitan = require("./models/Registromctitan");
 const Registrodubai = require("./models/Registrodubai");
 const Registromiami = require("./models/Registromiami");
 const RegistroPanteraarg1995 = require("./models/RegistroPanteraarg1995");
+const RegistroWonbet = require("./models/RegistroWonbet");
 
 const axios = require('axios');
 const cookieParser = require("cookie-parser");
@@ -104,6 +105,8 @@ app.post("/guardar", async (req, res) => {
       existente = await Registromiami.findOne({ id });
     } else if (kommoId === "panteraarg1995") {
       existente = await RegistroPanteraarg1995.findOne({ id });
+    } else if (kommoId === "wbpubli4") {
+      existente = await RegistroWonbet.findOne({ id });
     }
 
     if (existente) {
@@ -270,6 +273,18 @@ app.post("/guardar", async (req, res) => {
       await nuevoRegistro.save();
     } else if (kommoId === "panteraarg1995") {
       nuevoRegistro = new RegistroPanteraarg1995({
+        id,
+        token,
+        pixel,
+        subdominio,
+        dominio,
+        ip,
+        fbclid,
+        mensaje,
+      });
+      await nuevoRegistro.save();
+    } else if (kommoId === "wbpubli4") {
+      nuevoRegistro = new RegistroWonbet({
         id,
         token,
         pixel,
@@ -452,6 +467,8 @@ app.post("/verificacion", async (req, res) => {
         Modelo = Registromiami;
       } else if (kommoId === "panteraarg1995") {
         Modelo = RegistroPanteraarg1995;
+      } else if (kommoId === "wbpubli4") {
+        Modelo = RegistroWonbet;
       }
 
       try {
