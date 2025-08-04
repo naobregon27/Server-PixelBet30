@@ -8,7 +8,7 @@ const RegistroBettwo = require("./models/RegistroBettwo");
 const RegistroBetthree = require("./models/RegistroBetthree");
 const RegistroBetFour = require("./models/RegistroBetFour");
 const RegistroBetfive = require("./models/RegistroBetfive");
-const RegistroGanamosnet = require("./models/RegistroGanamosnet");
+const Registrocash365 = require("./models/Registrocash365");
 const RegistroWoncashcorp = require("./models/RegistroWoncashcorp");
 const Registromctitan = require("./models/Registromctitan");
 const Registrodubai = require("./models/Registrodubai");
@@ -94,7 +94,7 @@ app.post("/guardar", async (req, res) => {
     } else if (kommoId === "publimac") {
       existente = await RegistroBetfive.findOne({ id });
     } else if (kommoId === "Ganamosnet") {
-      existente = await RegistroGanamosnet.findOne({ id });
+      existente = await Registrocash365.findOne({ id });
     } else if (kommoId === "woncashcorp") {
       existente = await RegistroWoncashcorp.findOne({ id });
     } else if (kommoId === "mctitan") {
@@ -206,8 +206,8 @@ app.post("/guardar", async (req, res) => {
       });
 
       await nuevoRegistro.save();
-    } else if (kommoId === "Ganamosnet") {
-      nuevoRegistro = new RegistroGanamosnet({
+    } else if (kommoId === "woncoinbots2") {
+      nuevoRegistro = new Registrocash365({
         id,
         token,
         pixel,
@@ -455,8 +455,8 @@ app.post("/verificacion", async (req, res) => {
         Modelo = RegistroBetFour;
       } else if (kommoId === "publimac") {
         Modelo = RegistroBetfive;
-      } else if (kommoId === "Ganamosnet") {
-        Modelo = RegistroGanamosnet;
+      } else if (kommoId === "woncoinbots2") {
+        Modelo = Registrocash365;
       } else if (kommoId === "woncashcorp") {
         Modelo = RegistroWoncashcorp;
       } else if (kommoId === "mctitan") {
