@@ -632,7 +632,7 @@ app.post("/Purchase", async (req, res) => {
   console.log("🐛 DEBUG: token recibido:", token);
   // ------------------------------------------
 
-  console.log(JSON.stringify(body, null, 2), "← este es lo que devuelve el body");
+  console.log(JSON.stringify(body, null, 2), "← esto devuelve el purchase");
   // const leadId = req.body?.leads?.add?.[0]?.id;
 
   // // --- LOG DE DEPURACIÓN PARA leadId ---
