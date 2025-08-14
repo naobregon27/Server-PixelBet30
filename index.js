@@ -511,7 +511,7 @@ app.post("/verificacion", async (req, res) => {
           
           
             const eventData = {
-              event_name: lead,
+              event_name: Lead,
               event_id,
               event_time: Math.floor(Date.now() / 1000),
               action_source: "website",
