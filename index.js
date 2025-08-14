@@ -508,14 +508,10 @@ app.post("/verificacion", async (req, res) => {
 
             // URL con el parámetro access_token correctamente
             const pixelEndpointUrl = `https://graph.facebook.com/v18.0/${registro.pixel}/events?access_token=${registro.token}`;
-
-            let event_name = "Lead";
-            if (kommoId === "luchito4637") {
-              event_name = "Purchase-Luchito";
-            }
-
+          
+          
             const eventData = {
-              event_name: event_name,
+              event_name: lead,
               event_id,
               event_time: Math.floor(Date.now() / 1000),
               action_source: "website",
@@ -622,6 +618,7 @@ app.post("/verificacion", async (req, res) => {
     }
   });
 });
+
 
 async function obtenerContactoDesdeLead(leadId, kommoId, token) {
   // Aseguramos que se solicite custom_fields_values para el contacto si es necesario
