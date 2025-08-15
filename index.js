@@ -323,15 +323,6 @@ app.post("/verificacion", async (req, res) => {
 
   // --- LOG DE DEPURACIÓN PARA leadId ---
   console.log("🐛 DEBUG: leadId extraído del webhook:", leadId);
-
-  if(leadId) {
-    const registro = await RegistroLuchito.updateOne({ leadId }, { $set: { ...body } });
-    console.log("✅ Registro actualizado:", registro);
-
-    if (registro.modifiedCount === 0) {
-      console.log("⚠️ No se encontraron registros para actualizar.");
-    }
-  }
   // ------------------------------------
 
   if (kommoId === "mctitan") {
@@ -487,6 +478,11 @@ app.post("/verificacion", async (req, res) => {
         if (registro) {
           console.log("✅ Registro encontrado:", registro);
 
+          if(registro.subdominio === "landing129" || registro.subdominio === "landing130" || registro.subdominio === "landing131") {
+            registro.leadId = leadId.toString(); 
+            await registro.save();
+          }
+
           if (registro.isVerified) {
             return console.log("Registro ya pixeleado")
           }
@@ -511,10 +507,13 @@ app.post("/verificacion", async (req, res) => {
             const fbp = cookies._fbp || `fb.1.${Math.floor(Date.now() / 1000)}.${Math.floor(1000000000 + Math.random() * 9000000000)}`;
             const event_id = `lead_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
 
-            // Marcar como verificado
-            registro.isVerified = true;
-            registro.verificationStatus = 'verificado';
-            await registro.save();
+
+            if(registro.subdominio != "landing129" || registro.subdominio != "landing130" || registro.subdominio != "landing131") {
+              // Marcar como verificado
+              registro.isVerified = true;
+              registro.verificationStatus = 'verificado';
+              await registro.save();
+            }
 
             // URL con el parámetro access_token correctamente
             const pixelEndpointUrl = `https://graph.facebook.com/v18.0/${registro.pixel}/events?access_token=${registro.token}`;
