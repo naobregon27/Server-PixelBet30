@@ -138,6 +138,7 @@ app.post("/guardar", async (req, res) => {
         ip,
         fbclid,
         mensaje,
+        leadId: "",
       });
 
       await nuevoRegistro.save();
@@ -322,6 +323,15 @@ app.post("/verificacion", async (req, res) => {
 
   // --- LOG DE DEPURACIÓN PARA leadId ---
   console.log("🐛 DEBUG: leadId extraído del webhook:", leadId);
+
+  if(leadId) {
+    const registro = await RegistroLuchito.updateOne({ leadId }, { $set: { ...body } });
+    console.log("✅ Registro actualizado:", registro);
+
+    if (registro.modifiedCount === 0) {
+      console.log("⚠️ No se encontraron registros para actualizar.");
+    }
+  }
   // ------------------------------------
 
   if (kommoId === "mctitan") {
@@ -515,7 +525,7 @@ app.post("/verificacion", async (req, res) => {
               event_id,
               event_time: Math.floor(Date.now() / 1000),
               action_source: "website",
-              event_source_url: `https://${registro.subdominio}.${registro.dominio}`,
+              event_source_url: `https://${kommoId}.kommo.com/`,
               user_data: {
                 client_ip_address: registro.ip,
                 client_user_agent: req.headers["user-agent"],
