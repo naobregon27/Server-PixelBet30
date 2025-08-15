@@ -478,11 +478,6 @@ app.post("/verificacion", async (req, res) => {
         if (registro) {
           console.log("✅ Registro encontrado:", registro);
 
-          if(registro.subdominio === "landing129" || registro.subdominio === "landing130" || registro.subdominio === "landing131") {
-            registro.leadId = leadId.toString(); 
-            await registro.save();
-          }
-
           if (registro.isVerified) {
             return console.log("Registro ya pixeleado")
           }
@@ -508,12 +503,19 @@ app.post("/verificacion", async (req, res) => {
             const event_id = `lead_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
 
 
-            if(registro.subdominio != "landing129" || registro.subdominio != "landing130" || registro.subdominio != "landing131") {
-              // Marcar como verificado
-              registro.isVerified = true;
-              registro.verificationStatus = 'verificado';
+            if(registro.subdominio === "landing129" || registro.subdominio === "landing130" || registro.subdominio === "landing131") {
+              console.log("es del nuevo pixel 2.0 logrado")
+              registro.leadId = leadId.toString(); 
               await registro.save();
+              
+              console.log("Registro guardado con nuevo leadId:", registro.leadId);
+            
+              return;
             }
+
+            registro.isVerified = true;
+            registro.verificationStatus = 'verificado';
+            await registro.save();
 
             // URL con el parámetro access_token correctamente
             const pixelEndpointUrl = `https://graph.facebook.com/v18.0/${registro.pixel}/events?access_token=${registro.token}`;
