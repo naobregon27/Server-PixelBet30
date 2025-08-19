@@ -630,6 +630,157 @@ app.post("/verificacion", async (req, res) => {
   });
 });
 
+app.post("/purchase", async (req, res) => {
+  // Log del cuerpo de la solicitud completo para depuración
+  console.log(`\n======================================================`);
+  console.log(`\n📦 Contenido del body recibido:`);
+  console.log(JSON.stringify(req.body, null, 2));
+  console.log(`\n======================================================`);
+
+  // Extraer los parámetros de la consulta de la URL
+  const { kommoId, token } = req.query;
+
+  // El ID del lead se obtiene correctamente del webhook de Kommo.
+  const leadId = req.body?.leads?.update?.[0]?.id || req.body?.leads?.add?.[0]?.id;
+
+  // 1. Verificación inicial del Lead ID
+  if (!leadId) {
+    console.error("❌ Lead ID no encontrado en la solicitud.");
+    return res.status(400).json({ error: "Lead ID no encontrado." });
+  }
+
+  console.log(`🐛 DEBUG: Procesando evento para lead ID: ${leadId}`);
+
+  try {
+    // 2. Obtener la información completa del lead, incluyendo campos personalizados
+    const leadResponse = await axios.get(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}?with=custom_fields_values`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const lead = leadResponse.data;
+    console.log("✅ Datos del lead obtenidos con éxito:", JSON.stringify(lead, null, 2));
+
+    // 3. Obtener el contacto para el email y otros datos
+    const contacto = await obtenerContactoDesdeLead(leadId, kommoId, token);
+    console.log("🐛 DEBUG: Obteniendo datos del contacto...");
+    if (!contacto) {
+      console.error("❌ Contacto no encontrado para el lead.");
+      return res.status(404).json({ error: "Contacto no encontrado." });
+    }
+    console.log("✅ Contacto vinculado al lead:", JSON.stringify(contacto, null, 2));
+
+    // 4. Buscar el registro en tu BD usando el leadId.
+    // Convertimos el leadId a string para la búsqueda si es necesario.
+    const idParaBuscar = leadId.toString();
+
+    let Modelo;
+    if (kommoId === "luchito4637") {
+      Modelo = RegistroLuchito;
+    } else {
+      console.error("❌ kommoId no autorizado para eventos de compra.");
+      return res.status(400).json({ error: "ID de Kommo no autorizado para eventos de compra." });
+    }
+
+    const registro = await Modelo.findOne({ leadId: idParaBuscar });  /// esta subido!! xD
+    console.log("🐛 DEBUG: Buscando registro en la base de datos...");
+    if (!registro) {
+      console.error("❌ Registro de lead no encontrado en la base de datos.");
+      return res.status(404).json({ error: "Registro de lead no encontrado en la base de datos." });
+    }
+    console.log("✅ Registro de la base de datos encontrado:", JSON.stringify(registro, null, 2));
+
+    // 5. Lógica para obtener el valor del presupuesto
+    const campoPresupuesto = lead.custom_fields_values?.find(field => field.field_name === "Presupuesto");
+    const valorPresupuesto = campoPresupuesto?.values?.[0]?.value || 0;
+    const valorNumerico = parseFloat(valorPresupuesto) || 0;
+    console.log(`🐛 DEBUG: Valor del presupuesto extraído: ${valorNumerico}`);
+
+    registro.isVerified = true;
+    registro.verificationStatus = 'verificado';
+    await registro.save();
+
+    const cookies = req.cookies;
+    const fbclid = registro.fbclid;
+    const fbc = cookies._fbc || (fbclid ? `fb.1.${Math.floor(Date.now() / 1000)}.${fbclid}` : null);
+    const fbp = cookies._fbp || `fb.1.${Math.floor(Date.now() / 1000)}.${Math.floor(1000000000 + Math.random() * 9000000000)}`;
+
+    const baseEventId = `${leadId}_${Date.now()}`;
+
+    const commonData = {
+      event_time: Math.floor(Date.now() / 1000),
+      action_source: "website",
+      event_source_url: `https://${registro.subdominio}.${registro.dominio}`,
+      user_data: {
+        client_ip_address: registro.ip,
+        client_user_agent: req.headers["user-agent"],
+        em: registro.email
+          ? require("crypto").createHash("sha256").update(registro.email).digest("hex")
+          : undefined,
+        fbc,
+        fbp,
+      },
+    };
+
+    // Tu evento personalizado
+    const purchaseLuchitoEvent = {
+      ...commonData,
+      event_name: "Purchase-Luchito",
+      event_id: `${baseEventId}_custompurchase`,
+      custom_data: {
+        currency: "ARS",
+        value: valorNumerico,
+      },
+    };
+
+    // Estándar AddToCart
+    const addToCartEvent = {
+      ...commonData,
+      event_name: "AddToCart",
+      event_id: `${baseEventId}_addtocart`,
+      custom_data: {
+        currency: "ARS",
+        value: valorNumerico,
+        content_type: "product",
+        content_ids: [registro.productoId || "default-product"],
+        num_items: registro.cantidad || 1,
+      },
+    };
+
+    // Estándar InitiateCheckout
+    const initiateCheckoutEvent = {
+      ...commonData,
+      event_name: "InitiateCheckout",
+      event_id: `${baseEventId}_initcheckout`,
+      custom_data: {
+        currency: "ARS",
+        value: valorNumerico,
+        content_type: "product",
+        content_ids: [registro.productoId || "default-product"],
+        num_items: registro.cantidad || 1,
+      },
+    };
+
+    const pixelEndpointUrl = `https://graph.facebook.com/v18.0/${registro.pixel}/events?access_token=${registro.token}`;
+
+    // Enviar todos juntos
+    const eventData = [purchaseLuchitoEvent, addToCartEvent, initiateCheckoutEvent];
+
+    console.log("📤 Datos de eventos a enviar:", JSON.stringify(eventData, null, 2));
+
+    const pixelResponse = await axios.post(pixelEndpointUrl, { data: eventData }, {
+      headers: { "Content-Type": "application/json" },
+    });
+
+    console.log("✅ Eventos enviados a Meta con éxito:", pixelResponse.data);
+    res.status(200).json({ mensaje: "Evento de compra enviado exitosamente a Meta." });
+
+  } catch (error) {
+    console.error("❌ Error al procesar el evento de compra:", error.response?.data || error.message);
+    res.status(500).json({ error: "Error interno al enviar el evento de compra." });
+  } finally {
+    console.log(`\n======================================================\n`);
+  }
+})
+
 
 async function obtenerContactoDesdeLead(leadId, kommoId, token) {
   // Aseguramos que se solicite custom_fields_values para el contacto si es necesario
