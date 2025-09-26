@@ -38,7 +38,7 @@ mongoose.connect("mongodb+srv://lauraahora4632025:hXqOPPuQ1INnrtkX@ahora4633.kcv
   });
 
 // Eventos adicionales de conexión
-mongoose.connection.on('connected', () => {
+mongoose.connection.on('connected', () => { //test
   console.log('🟢 MongoDB conectado');
 });
 
