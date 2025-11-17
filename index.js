@@ -15,6 +15,7 @@ const Registrodubai = require("./models/Registrodubai");
 const Registromiami = require("./models/Registromiami");
 const RegistroPanteraarg1995 = require("./models/RegistroPanteraarg1995");
 const RegistroWonbet = require("./models/RegistroWonbet");
+const RegistroPantera = require("./models/RegistroPantera");
 
 const axios = require('axios');
 const cookieParser = require("cookie-parser");
@@ -83,6 +84,8 @@ app.post("/guardar", async (req, res) => {
       existente = await RegistroMacleyn.findOne({ id });
     } else if (kommoId === "luchito4637") {
       existente = await RegistroLuchito.findOne({ id });
+    } else if (kommoId === "pantera22025two") {
+      existente = await RegistroPantera.findOne({ id });
     } else if (kommoId === "blackpanther1") {
       existente = await RegistroBetone.findOne({ id });
     } else if (kommoId === "blackpanther2") {
@@ -141,6 +144,19 @@ app.post("/guardar", async (req, res) => {
         leadId: "",
       });
 
+      await nuevoRegistro.save();
+    } else if (kommoId === "pantera22025two") {
+      nuevoRegistro = new RegistroPantera({
+        id,
+        token,
+        pixel,
+        subdominio,
+        dominio,
+        ip,
+        fbclid,
+        mensaje,
+        leadId: "",
+      });
       await nuevoRegistro.save();
     } else if (kommoId === "blackpanther1") {
       nuevoRegistro = new RegistroBetone({
@@ -446,6 +462,8 @@ app.post("/verificacion", async (req, res) => {
         Modelo = RegistroMacleyn;
       } else if (kommoId === "luchito4637") {
         Modelo = RegistroLuchito;
+      } else if (kommoId === "pantera22025two") {
+        Modelo = RegistroPantera;
       } else if (kommoId === "blackpanther1") {
         Modelo = RegistroBetone;
       } else if (kommoId === "blackpanther2") {
@@ -503,8 +521,8 @@ app.post("/verificacion", async (req, res) => {
             const event_id = `lead_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
 
 
-            if(registro.subdominio === "landing129" || registro.subdominio === "landing130" || registro.subdominio === "landing131") {
-              console.log("es del nuevo pixel 2.0 logrado")
+            if(registro.subdominio === "landing129" || registro.subdominio === "landing130" || registro.subdominio === "landing131" || kommoId === "pantera22025two") {
+              console.log("es del Purchase o Pantera, actualizando leadId y saliendo");
               registro.leadId = leadId.toString(); 
               await registro.save();
               
@@ -675,6 +693,8 @@ app.post("/purchase", async (req, res) => {
     let Modelo;
     if (kommoId === "luchito4637") {
       Modelo = RegistroLuchito;
+    } else if (kommoId === "pantera22025two") {
+      Modelo = RegistroPantera;
     } else {
       console.error("❌ kommoId no autorizado para eventos de compra.");
       return res.status(400).json({ error: "ID de Kommo no autorizado para eventos de compra." });
@@ -723,7 +743,7 @@ app.post("/purchase", async (req, res) => {
     // Tu evento personalizado
     const purchaseLuchitoEvent = {
       ...commonData,
-      event_name: "Purchase-Luchito",
+      event_name: "Purchase",
       event_id: `${baseEventId}_custompurchase`,
       custom_data: {
         currency: "ARS",
