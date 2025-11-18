@@ -16,6 +16,8 @@ const Registromiami = require("./models/Registromiami");
 const RegistroPanteraarg1995 = require("./models/RegistroPanteraarg1995");
 const RegistroWonbet = require("./models/RegistroWonbet");
 const RegistroPantera = require("./models/RegistroPantera");
+const RegistroMagnus = require("./models/RegistroMagnus");
+const RegistroMaxWin = require("./models/RegistroMaxWin");
 
 const axios = require('axios');
 const cookieParser = require("cookie-parser");
@@ -110,6 +112,10 @@ app.post("/guardar", async (req, res) => {
       existente = await RegistroPanteraarg1995.findOne({ id });
     } else if (kommoId === "wbpubli4") {
       existente = await RegistroWonbet.findOne({ id });
+    } else if (kommoId === "magnuscargas") {
+      existente = await RegistroMagnus.findOne({ id });
+    } else if (kommoId === "maxwincargas") {
+      existente = await RegistroMaxWin.findOne({ id });
     }
 
     if (existente) {
@@ -312,6 +318,30 @@ app.post("/guardar", async (req, res) => {
         mensaje,
       });
       await nuevoRegistro.save();
+    } else if (kommoId === "magnuscargas") {
+      nuevoRegistro = new RegistroMagnus({
+        id,
+        token,
+        pixel,
+        subdominio,
+        dominio,
+        ip,
+        fbclid,
+        mensaje,
+      });
+      await nuevoRegistro.save();
+    } else if (kommoId === "maxwincargas") {
+      nuevoRegistro = new RegistroMaxWin({
+        id,
+        token,
+        pixel,
+        subdominio,
+        dominio,
+        ip,
+        fbclid,
+        mensaje,
+      });
+      await nuevoRegistro.save();
     } else {
       return res.status(400).json({ error: "ID de Kommo no reconocido" });
     }
@@ -488,6 +518,10 @@ app.post("/verificacion", async (req, res) => {
         Modelo = RegistroPanteraarg1995;
       } else if (kommoId === "wbpubli4") {
         Modelo = RegistroWonbet;
+      } else if (kommoId === "magnuscargas") {
+        Modelo = RegistroMagnus;
+      } else if (kommoId === "maxwincargas") {
+        Modelo = RegistroMaxWin;
       }
 
       try {
@@ -539,7 +573,7 @@ app.post("/verificacion", async (req, res) => {
             const pixelEndpointUrl = `https://graph.facebook.com/v18.0/${registro.pixel}/events?access_token=${registro.token}`;
           
           
-            const eventData = {
+            let eventData = {
               event_name: "Lead",
               event_id,
               event_time: Math.floor(Date.now() / 1000),
@@ -553,6 +587,17 @@ app.post("/verificacion", async (req, res) => {
                 fbp
               },
             };
+
+            if (kommoId === "maxwincargas") {
+
+              let newValue = 5000/1400; // Convertir 5000 ARS a USD
+
+              eventData.event_name = "Purchase";
+              eventData.custom_data = {
+                currency: "USD",
+                value: newValue,
+              };
+            }
 
             console.log("Datos del evento a enviar:", JSON.stringify(eventData, null, 2));
             console.log("URL del Pixel:", pixelEndpointUrl);
