@@ -742,9 +742,9 @@ app.post("/purchase", async (req, res) => {
     const comprobantes = await obtenerAdjuntosDelChat(chatId, kommoId, token);
 
      if (comprobantes.length === 0) {
-    console.log("❌ No hay comprobantes en el chat.");
-    return;
-  }
+      console.log("❌ No hay comprobantes en el chat.");
+      return;
+    }
 
     console.log("📄 Comprobantes encontrados:", comprobantes);
   }
@@ -913,7 +913,7 @@ async function obtenerContactoDesdeLead(leadId, kommoId, token) {
 
 async function obtenerChatIdDelLead(leadId, kommoId, token) {
 
-  const url = `https://${kommoId}.kommo.com/api/v4/leads/${leadId}/link`;
+  const url = `https://${kommoId}.kommo.com/api/v4/leads/${leadId}?with=contacts,chats`;
 
   const { data } = await axios.get(url, {
     headers: { Authorization: `Bearer ${token}` }
