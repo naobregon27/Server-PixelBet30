@@ -69,4 +69,4 @@ const registroSchema = new mongoose.Schema({
     }
 });
 
-module.exports = mongoose.model('RegistroPantera', registroSchema);
+module.exports = mongoose.model('RegistroMaxWin', registroSchema);
