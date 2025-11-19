@@ -912,6 +912,11 @@ async function obtenerComprobanteDesdeLead(leadId, kommoId, token) {
 
   const adjuntos = [];
 
+  if (!data._embedded || !data._embedded.notes) {
+    console.log("⚠️ No se encontraron notas adjuntas en el lead.");
+    return adjuntos;
+  }
+
   for (const note of data._embedded.notes) {
     if (note.note_type === "attachment") {
       const archivos = note.params.attachments;
