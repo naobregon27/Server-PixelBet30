@@ -21,7 +21,12 @@ const RegistroMagnus = require("./models/RegistroMagnus");
 const RegistroMaxWin = require("./models/RegistroMaxWin");
 
 const axios = require('axios');
+const { TextractClient, AnalyzeDocumentCommand } = require('@aws-sdk/client-textract');
 const cookieParser = require("cookie-parser");
+
+const AWS_REGION = "us-east-1"; // La región donde está configurado tu Textract
+
+const textractClient = new TextractClient({ region: AWS_REGION });
 
 const app = express();
 const PORT = 3000;
@@ -731,24 +736,8 @@ app.post("/purchase", async (req, res) => {
     console.log("Buscando chat vinculado al lead:", leadId);
 
     const chatId = await obtenerChatIdDelLead(leadId, kommoId, token);
-
-    if (!chatId) {
-      console.log("❌ No se encontró chat vinculado.");
-      return;
-    }
-
-    console.log("✅ Chat vinculado encontrado. ID del chat:", chatId);
-
-    const comprobantes = await obtenerAdjuntosDelChat(chatId, kommoId, token);
-
-    if (comprobantes.length === 0) {
-      console.log("❌ No hay comprobantes en el chat.");
-      return;
-    }
-
-    console.log("📄 Comprobantes encontrados:", comprobantes);
   }
-
+  
   try {
     // 2. Obtener la información completa del lead, incluyendo campos personalizados
     const leadResponse = await axios.get(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}?with=custom_fields_values`, {
@@ -913,15 +902,81 @@ async function obtenerContactoDesdeLead(leadId, kommoId, token) {
 
 async function obtenerChatIdDelLead(leadId, kommoId, token) {
 
-  const url = `https://${kommoId}.kommo.com/api/v4/leads/${leadId}/files`;
+  const authHeaders = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+    };
 
-  const { data } = await axios.get(url, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
+    // 1. OBTENER EL ID DEL ÚLTIMO ARCHIVO
+    try {
+        const filesUrl = `https://${kommoId}.kommo.com/api/v4/leads/${leadId}/files?limit=1`;
+        console.log(`Buscando archivos en: ${filesUrl}`);
+        
+        const response = await axios.get(filesUrl, { headers: authHeaders });
+        
+        const files = response.data._embedded?.files;
 
-  console.log("Datos del lead con chats:", JSON.stringify(data, null, 2));
+        if (!files || files.length === 0) {
+            console.log("No se encontró ningún archivo adjunto en el lead.");
+            return;
+        }
 
-  if (!data._embedded || !data._embedded.links) return null;
+        const fileId = files[0].id;
+        console.log(`✅ ID del último archivo encontrado: ${fileId}`);
+
+        // 2. DESCARGAR EL ARCHIVO (como Buffer binario)
+        const downloadUrl = `https://${kommoId}.kommo.com/api/v4/files/${fileId}/download`;
+        
+        // La clave es el 'responseType: "arraybuffer"' para manejar datos binarios
+        const downloadResponse = await axios.get(downloadUrl, { 
+            headers: authHeaders,
+            responseType: 'arraybuffer' 
+        });
+        
+        // El contenido del archivo está en downloadResponse.data como un Buffer
+        const fileBuffer = Buffer.from(downloadResponse.data);
+        console.log(`✅ Archivo descargado exitosamente. Tamaño: ${fileBuffer.length} bytes.`);
+
+        // 3. ESCANEAR CON AWS TEXTRACT
+        const textractParams = {
+            Document: {
+                // Textract acepta el contenido binario como 'Bytes'
+                Bytes: fileBuffer 
+            },
+            FeatureAdapters: [
+                'FORMS', // Útil para extraer campos clave/valor
+                'TABLES' // Útil si el comprobante tiene estructuras tabulares
+            ]
+        };
+
+        const command = new AnalyzeDocumentCommand(textractParams);
+        const textractResult = await textractClient.send(command);
+        
+        console.log("✅ Proceso de Textract completado.");
+        
+        // Ejemplo de cómo obtener el texto sin procesar
+        let textoCompleto = '';
+        textractResult.Blocks.forEach(block => {
+            if (block.BlockType === 'LINE') {
+                textoCompleto += block.Text + '\n';
+            }
+        });
+        
+        console.log("\n--- RESULTADO DE TEXTRACT (Texto Completo) ---");
+        console.log(textoCompleto);
+        
+        // Puedes devolver 'textractResult' si necesitas procesar la estructura FORMS/TABLES
+        return textractResult; 
+
+    } catch (error) {
+        console.error("❌ Ocurrió un error en el proceso:");
+        // Manejo de errores específico (p.ej., si la API de Kommo falla o Textract falla)
+        if (axios.isAxiosError(error)) {
+             console.error(`Error de Kommo: ${error.message} - Estatus: ${error.response?.status}`);
+        } else {
+             console.error(error);
+        }
+    }
 }
 
 async function obtenerAdjuntosDelChat(chatId, kommoId, token) {

@@ -20,6 +20,7 @@
   "homepage": "https://github.com/PlazaSantaMarta/Server-Pixel#readme",
   "description": "",
   "dependencies": {
+    "@aws-sdk/client-textract": "^3.934.0",
     "axios": "^1.10.0",
     "body-parser": "^2.2.0",
     "cookie-parser": "^1.4.7",
