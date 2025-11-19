@@ -727,13 +727,26 @@ app.post("/purchase", async (req, res) => {
   if (kommoId === "pantera22025two"){
     console.log("🐛 DEBUG: Obteniendo comprobantes adjuntos del lead...");
 
-    const comprobantes = await obtenerComprobanteDesdeLead(leadId, kommoId, token);
 
-    if (comprobantes.length === 0) {
-      console.warn("⚠️ No se encontraron comprobantes adjuntos para este lead.");
-    } else {
-      console.log("✅ Comprobantes adjuntos obtenidos:", JSON.stringify(comprobantes, null, 2));
+    console.log("Buscando chat vinculado al lead:", leadId);
+
+    const chatId = await obtenerChatIdDelLead(leadId, kommoId, token);
+
+    if (!chatId) {
+      console.log("❌ No se encontró chat vinculado.");
+      return;
     }
+
+    console.log("✅ Chat vinculado encontrado. ID del chat:", chatId);
+
+    const comprobantes = await obtenerAdjuntosDelChat(chatId, kommoId, token);
+
+     if (comprobantes.length === 0) {
+    console.log("❌ No hay comprobantes en el chat.");
+    return;
+  }
+
+    console.log("📄 Comprobantes encontrados:", comprobantes);
   }
 
   try {
@@ -898,40 +911,46 @@ async function obtenerContactoDesdeLead(leadId, kommoId, token) {
   }
 }
 
-async function obtenerComprobanteDesdeLead(leadId, kommoId, token) {
+async function obtenerChatIdDelLead(leadId, kommoId, token) {
 
-  const url = `https://${kommoId}.kommo.com/api/v4/leads/${leadId}/notes`;
+  const url = `https://${kommoId}.kommo.com/api/v4/leads/${leadId}/link`;
 
   const { data } = await axios.get(url, {
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
+    headers: { Authorization: `Bearer ${token}` }
   });
 
-  console.log("🐛 DEBUG: Notas obtenidas del lead:", JSON.stringify(data, null, 2));
+  if (!data._embedded || !data._embedded.links) return null;
+
+  const chats = data._embedded.links.filter(
+    l => l.to_entity_type === "messages"
+  );
+
+  return chats.length ? chats[0].to_entity_id : null;
+}
+
+async function obtenerAdjuntosDelChat(chatId , kommoId, token) {
+  const url = `https://${kommoId}.kommo.com/api/v4/messages?filter[conversation_id]=${chatId}`;
+
+  const { data } = await axios.get(url, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
 
   const adjuntos = [];
 
-  if (!data._embedded || !data._embedded.notes) {
-    console.log("⚠️ No se encontraron notas adjuntas en el lead.");
-    return adjuntos;
-  }
+  if (!data._embedded || !data._embedded.messages) return adjuntos;
 
-  for (const note of data._embedded.notes) {
-    if (note.note_type === "attachment") {
-      const archivos = note.params.attachments;
-
-      archivos.forEach(a => {
+  for (const msg of data._embedded.messages) {
+    if (msg.attachments && msg.attachments.length > 0) {
+      msg.attachments.forEach(a => {
         adjuntos.push({
           nombre: a.file_name,
-          url: a.download_link
+          url: a.file_url
         });
       });
     }
   }
 
   return adjuntos;
-
 }
 
 app.listen(PORT, () => {
