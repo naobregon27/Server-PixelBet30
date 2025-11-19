@@ -913,7 +913,7 @@ async function obtenerContactoDesdeLead(leadId, kommoId, token) {
 
 async function obtenerChatIdDelLead(leadId, kommoId, token) {
 
-  const url = `https://${kommoId}.kommo.com/api/v4/leads/${leadId}?with=contacts,chats`;
+  const url = `https://${kommoId}.kommo.com/api/v4/leads/${leadId}/files`;
 
   const { data } = await axios.get(url, {
     headers: { Authorization: `Bearer ${token}` }
@@ -922,12 +922,6 @@ async function obtenerChatIdDelLead(leadId, kommoId, token) {
   console.log("Datos del lead con chats:", JSON.stringify(data, null, 2));
 
   if (!data._embedded || !data._embedded.links) return null;
-
-  const chats = data._embedded.links.filter(
-    l => l.to_entity_type === "messages"
-  );
-
-  return chats.length ? chats[0].to_entity_id : null;
 }
 
 async function obtenerAdjuntosDelChat(chatId, kommoId, token) {
