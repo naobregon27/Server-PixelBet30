@@ -735,7 +735,7 @@ app.post("/purchase", async (req, res) => {
       console.log("✅ Comprobantes adjuntos obtenidos:", JSON.stringify(comprobantes, null, 2));
     }
   }
-  
+
   try {
     // 2. Obtener la información completa del lead, incluyendo campos personalizados
     const leadResponse = await axios.get(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}?with=custom_fields_values`, {
@@ -907,6 +907,8 @@ async function obtenerComprobanteDesdeLead(leadId, kommoId, token) {
       Authorization: `Bearer ${token}`
     }
   });
+
+  console.log("🐛 DEBUG: Notas obtenidas del lead:", JSON.stringify(data, null, 2));
 
   const adjuntos = [];
 
