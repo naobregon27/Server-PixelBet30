@@ -722,6 +722,20 @@ app.post("/purchase", async (req, res) => {
 
   console.log(`🐛 DEBUG: Procesando evento para lead ID: ${leadId}`);
 
+  // Obtener los comprobantes adjuntos del lead del kommo de pantera
+
+  if (kommoId === "pantera22025two"){
+    console.log("🐛 DEBUG: Obteniendo comprobantes adjuntos del lead...");
+
+    const comprobantes = await obtenerComprobanteDesdeLead(leadId, kommoId, token);
+
+    if (comprobantes.length === 0) {
+      console.warn("⚠️ No se encontraron comprobantes adjuntos para este lead.");
+    } else {
+      console.log("✅ Comprobantes adjuntos obtenidos:", JSON.stringify(comprobantes, null, 2));
+    }
+  }
+  
   try {
     // 2. Obtener la información completa del lead, incluyendo campos personalizados
     const leadResponse = await axios.get(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}?with=custom_fields_values`, {
@@ -882,6 +896,35 @@ async function obtenerContactoDesdeLead(leadId, kommoId, token) {
     console.error("❌ Error al obtener contacto desde lead:", err.response?.data || err.message);
     return null;
   }
+}
+
+async function obtenerComprobanteDesdeLead(leadId, kommoId, token) {
+
+  const url = `https://${kommoId}.kommo.com/api/v4/leads/${leadId}/notes`;
+
+  const { data } = await axios.get(url, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+
+  const adjuntos = [];
+
+  for (const note of data._embedded.notes) {
+    if (note.note_type === "attachment") {
+      const archivos = note.params.attachments;
+
+      archivos.forEach(a => {
+        adjuntos.push({
+          nombre: a.file_name,
+          url: a.download_link
+        });
+      });
+    }
+  }
+
+  return adjuntos;
+
 }
 
 app.listen(PORT, () => {
