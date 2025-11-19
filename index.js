@@ -19,8 +19,11 @@ const RegistroPantera = require("./models/RegistroPantera");
 const RegistroMagnus = require("./models/RegistroMagnus");
 const RegistroMaxWin = require("./models/RegistroMaxWin");
 
-const axios = require('axios');
-const cookieParser = require("cookie-parser");
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const cookieParser = require('cookie-parser');
+// Ya no necesitas 'body-parser' porque usas express.json()
 
 const app = express();
 const PORT = 3000;
@@ -34,11 +37,11 @@ const corsOptions = {
 app.use(cors(corsOptions)); 
 
 // ➡️ Middlewares de Express
-app.use(express.json()); // Analiza JSON (reemplaza body-parser.json())
+app.use(express.json()); // Analiza JSON
 app.use(express.urlencoded({ extended: true })); 
 app.use(cookieParser());
 
-// ➡️ CONEXIÓN A MONGODB RESTABLECIDA
+// ➡️ CONEXIÓN A MONGODB
 mongoose.connect("mongodb+srv://lauraahora4632025:hXqOPPuQ1INnrtkX@ahora4633.kcvqn5q.mongodb.net/")
   .then(() => {
     console.log('✅ Conexión exitosa a MongoDB Atlas');
