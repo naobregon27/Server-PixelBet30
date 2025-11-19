@@ -737,7 +737,7 @@ app.post("/purchase", async (req, res) => {
 
     const chatId = await obtenerChatIdDelLead(leadId, kommoId, token);
   }
-  
+
   try {
     // 2. Obtener la información completa del lead, incluyendo campos personalizados
     const leadResponse = await axios.get(`https://${kommoId}.kommo.com/api/v4/leads/${leadId}?with=custom_fields_values`, {
@@ -913,6 +913,8 @@ async function obtenerChatIdDelLead(leadId, kommoId, token) {
         console.log(`Buscando archivos en: ${filesUrl}`);
         
         const response = await axios.get(filesUrl, { headers: authHeaders });
+
+        console.log("✅ Respuesta de archivos recibida:", response.data);
         
         const files = response.data._embedded?.files;
 
