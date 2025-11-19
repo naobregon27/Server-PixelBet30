@@ -1,5 +1,6 @@
 const express = require("express");
 const mongoose = require("mongoose");
+const cors = require("cors");
 const bodyParser = require("body-parser");
 const RegistroMacleyn = require("./models/Registro");
 const RegistroLuchito = require("./models/RegistroLuchito");
@@ -19,11 +20,8 @@ const RegistroPantera = require("./models/RegistroPantera");
 const RegistroMagnus = require("./models/RegistroMagnus");
 const RegistroMaxWin = require("./models/RegistroMaxWin");
 
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const cookieParser = require('cookie-parser');
-// Ya no necesitas 'body-parser' porque usas express.json()
+const axios = require('axios');
+const cookieParser = require("cookie-parser");
 
 const app = express();
 const PORT = 3000;
