@@ -28,15 +28,15 @@ const PORT = 3000;
 
 // ➡️ Configuración CORS Universal
 const corsOptions = {
-    origin: "*", 
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true,
+  origin: "*",
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  credentials: true,
 };
-app.use(cors(corsOptions)); 
+app.use(cors(corsOptions));
 
 // ➡️ Middlewares de Express
 app.use(express.json()); // Analiza JSON
-app.use(express.urlencoded({ extended: true })); 
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // ➡️ CONEXIÓN A MONGODB
@@ -356,7 +356,7 @@ app.post("/guardar", async (req, res) => {
 
     res.status(201).json({ mensaje: "Datos guardados con éxito" });
     console.log(`✅ Registro guardado exitosamente en ${kommoId} :`, nuevoRegistro);
-    
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Error interno al guardar los datos" });
@@ -563,13 +563,13 @@ app.post("/verificacion", async (req, res) => {
             const event_id = `lead_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
 
 
-            if(registro.subdominio === "landing129" || registro.subdominio === "landing130" || registro.subdominio === "landing131" || kommoId === "pantera22025two") {
+            if (registro.subdominio === "landing129" || registro.subdominio === "landing130" || registro.subdominio === "landing131" || kommoId === "pantera22025two") {
               console.log("es del Purchase o Pantera, actualizando leadId y saliendo");
-              registro.leadId = leadId.toString(); 
+              registro.leadId = leadId.toString();
               await registro.save();
-              
+
               console.log("Registro guardado con nuevo leadId:", registro.leadId);
-            
+
               return;
             }
 
@@ -579,8 +579,8 @@ app.post("/verificacion", async (req, res) => {
 
             // URL con el parámetro access_token correctamente
             const pixelEndpointUrl = `https://graph.facebook.com/v18.0/${registro.pixel}/events?access_token=${registro.token}`;
-          
-          
+
+
             let eventData = {
               event_name: "Lead",
               event_id,
@@ -598,7 +598,7 @@ app.post("/verificacion", async (req, res) => {
 
             if (kommoId === "maxwincargas") {
 
-              let newValue = 5000/1400; // Convertir 5000 ARS a USD
+              let newValue = 5000 / 1400; // Convertir 5000 ARS a USD
 
               eventData.event_name = "Purchase";
               eventData.custom_data = {
@@ -724,7 +724,7 @@ app.post("/purchase", async (req, res) => {
 
   // Obtener los comprobantes adjuntos del lead del kommo de pantera
 
-  if (kommoId === "pantera22025two"){
+  if (kommoId === "pantera22025two") {
     console.log("🐛 DEBUG: Obteniendo comprobantes adjuntos del lead...");
 
 
@@ -741,7 +741,7 @@ app.post("/purchase", async (req, res) => {
 
     const comprobantes = await obtenerAdjuntosDelChat(chatId, kommoId, token);
 
-     if (comprobantes.length === 0) {
+    if (comprobantes.length === 0) {
       console.log("❌ No hay comprobantes en el chat.");
       return;
     }
@@ -919,6 +919,8 @@ async function obtenerChatIdDelLead(leadId, kommoId, token) {
     headers: { Authorization: `Bearer ${token}` }
   });
 
+  console.log("Datos del lead con chats:", JSON.stringify(data, null, 2));
+
   if (!data._embedded || !data._embedded.links) return null;
 
   const chats = data._embedded.links.filter(
@@ -928,7 +930,7 @@ async function obtenerChatIdDelLead(leadId, kommoId, token) {
   return chats.length ? chats[0].to_entity_id : null;
 }
 
-async function obtenerAdjuntosDelChat(chatId , kommoId, token) {
+async function obtenerAdjuntosDelChat(chatId, kommoId, token) {
   const url = `https://${kommoId}.kommo.com/api/v4/messages?filter[conversation_id]=${chatId}`;
 
   const { data } = await axios.get(url, {
