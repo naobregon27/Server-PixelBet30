@@ -21,24 +21,23 @@ const RegistroMaxWin = require("./models/RegistroMaxWin");
 
 const axios = require('axios');
 const cookieParser = require("cookie-parser");
+const cors = require("cors"); // Asegúrate de tener esta línea
 
 const app = express();
 const PORT = 3000;
 
-app.use(bodyParser.json());                  
-app.use(require("cors")());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json()); // Asegura que req.body funcione correctamente
-app.use(cookieParser());
+// ➡️ Configuración CORS Universal
+const corsOptions = {
+    origin: "*", 
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
+};
+app.use(cors(corsOptions)); 
 
-// Conexión a MongoDB con manejo de eventos
-mongoose.connect("mongodb+srv://lauraahora4632025:hXqOPPuQ1INnrtkX@ahora4633.kcvqn5q.mongodb.net/")
-  .then(() => {
-    console.log('✅ Conexión exitosa a MongoDB Atlas');
-  })
-  .catch(err => {
-    console.error('❌ Error de conexión a MongoDB:', err.message);
-  });
+// ➡️ Middlewares de Express (Eliminé el body-parser.json() duplicado)
+app.use(express.json()); // Analiza JSON
+app.use(express.urlencoded({ extended: true })); 
+app.use(cookieParser());
 
 // Eventos adicionales de conexión
 mongoose.connection.on('connected', () => { //test
