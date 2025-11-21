@@ -601,17 +601,6 @@ app.post("/verificacion", async (req, res) => {
               },
             };
 
-            if (kommoId === "maxwincargas") {
-
-              let newValue = 5000 / 1400; // Convertir 5000 ARS a USD
-
-              eventData.event_name = "Purchase MaxWin";
-              eventData.custom_data = {
-                currency: "USD",
-                value: newValue,
-              };
-            }
-
             console.log("Datos del evento a enviar:", JSON.stringify(eventData, null, 2));
             console.log("URL del Pixel:", pixelEndpointUrl);
 
