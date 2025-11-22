@@ -905,6 +905,7 @@ async function obtenerChatIdDelLead(leadId, kommoId, token) {
 
         console.log("✅ Respuesta de archivos recibida:", response.data);
         console.log (`Cantidad de archivos encontrados: ${response.data._embedded.files}`);
+        console.log (`Archivos: ${JSON.stringify(response.data._embedded.files)}`);
         
         const files = response.data._embedded?.files;
 
