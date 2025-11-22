@@ -904,7 +904,7 @@ async function obtenerChatIdDelLead(leadId, kommoId, token) {
         const response = await axios.get(filesUrl, { headers: authHeaders });
 
         console.log("✅ Respuesta de archivos recibida:", response.data);
-        console.log (`Cantidad de archivos encontrados: ${response.data._embedded}`);
+        console.log (`Cantidad de archivos encontrados: ${response.data._embedded.files}`);
         
         const files = response.data._embedded?.files;
 
